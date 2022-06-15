@@ -1,0 +1,101 @@
+iverilog -o sccomp_tb.v.out sccomp_tb.v ; vvp sccomp_tb.v.out
+
+alu.v :
+    module alu(
+        input  signed [31:0] A, B;
+        input         [4:0]  ALUOp;
+	    input [31:0] PC;
+
+        output signed [31:0] C;
+        output Zero;
+    );
+    算术单元
+    C = A op B
+    Zero = C全0？
+    ALUOP 分类
+
+im.v
+    module im(
+        input  [8:2]  addr;
+        output [31:0] dout;
+    );
+
+    读取指令
+    assign dout = ROM[addr];
+
+dm.v
+    module dm(
+        input          clk;
+        input          DMWr;
+        input  [8:2]   addr;
+        input  [31:0]  din;
+
+        output [31:0]  dout;
+    );
+
+    读写内存
+    在clk的边沿，如果 DMWr 则写入 dmem[addr[8:2]] <= din;，写入时会 display
+    assign dout = dmem[addr[8:2]];
+
+EXT.v
+    module EXT( 
+        input   [4:0]   iimm_shamt,
+        input	[11:0]	iimm, //instr[31:20], 12 bits
+        input	[11:0]	simm, //instr[31:25, 11:7], 12 bits
+        input	[11:0]	bimm, //instrD[31], instrD[7], instrD[30:25], instrD[11:8], 12 bits
+        input	[19:0]	uimm,
+        input	[19:0]	jimm,
+        input	[5:0]	EXTOp,
+
+        output reg [31:0] immout
+    );
+
+    从指令中读取立即数
+
+NPC.v
+    module NPC(
+        input  [31:0] PC;        // pc
+        input  [2:0]  NPCOp;     // next pc operation
+        input  [31:0] IMM;       // immediate
+        input  [31:0] aluout;
+
+        output reg [31:0] NPC;   // next pc
+    );
+
+    计算下一个PC
+
+PC.v
+    module PC(
+        input              clk;
+        input              rst;
+        input       [31:0] NPC;
+        output reg  [31:0] PC;
+    );
+
+    在clk的边沿，PC = NPC
+
+RF.v
+    module RF(
+        input         clk, 
+        input         rst,
+        input         RFWr, 
+        input  [4:0]  A1, A2, A3, 
+        input  [31:0] WD, 
+
+        output [31:0] RD1, RD2
+    );
+
+    寄存器堆
+    在clk的边沿，如果 RFWr 则写入 rf[A3] <= WD
+
+    assign RD1 = (A1 != 0) ? rf[A1] : 0;
+    assign RD2 = (A2 != 0) ? rf[A2] : 0;
+
+SCPU.v
+    CPU 文件
+
+sccomp.v
+    完整的处理器（CPU+DM+IM）
+
+sccomp_tb.v
+    
