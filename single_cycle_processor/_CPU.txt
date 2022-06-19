@@ -1,0 +1,148 @@
+iverilog -o sccomp_tb.v.out sccomp_tb.v ; vvp sccomp_tb.v.out
+
+im.v
+    module im(
+        input  [8:2]  addr;
+        output [31:0] dout;
+    );
+
+    读取指令
+    assign dout = ROM[addr];
+
+dm.v
+    module dm(
+        input          clk;
+        input          DMWr;
+        input  [8:2]   addr;
+        input  [31:0]  din;
+
+        output [31:0]  dout;
+    );
+
+    读写内存
+    在clk的边沿，如果 DMWr 则写入 dmem[addr[8:2]] <= din;，写入时会 display
+    assign dout = dmem[addr[8:2]];
+
+alu.v :
+    module alu(
+        input  signed [31:0] A, B;
+        input         [4:0]  ALUOp;
+	    input [31:0] PC;
+
+        output signed [31:0] C;
+        output Zero;
+    );
+    算术单元
+    C = A op B
+    Zero = C全0？
+    ALUOP 分类
+
+EXT.v
+    module EXT( 
+        input   [4:0]   iimm_shamt,
+        input	[11:0]	iimm, //instr[31:20], 12 bits
+        input	[11:0]	simm, //instr[31:25, 11:7], 12 bits
+        input	[11:0]	bimm, //instrD[31], instrD[7], instrD[30:25], instrD[11:8], 12 bits
+        input	[19:0]	uimm,
+        input	[19:0]	jimm,
+        input	[5:0]	EXTOp,
+
+        output reg [31:0] immout
+    );
+
+    从指令中读取立即数
+
+NPC.v
+    module NPC(
+        input  [31:0] PC;        // pc
+        input  [2:0]  NPCOp;     // next pc operation
+        input  [31:0] IMM;       // immediate
+        input  [31:0] aluout;
+
+        output reg [31:0] NPC;   // next pc
+    );
+
+    计算下一个PC
+
+PC.v
+    module PC(
+        input              clk;
+        input              rst;
+        input       [31:0] NPC;
+        output reg  [31:0] PC;
+    );
+
+    在clk的边沿，PC = NPC
+
+RF.v
+    module RF(
+        input         clk, 
+        input         rst,
+        input         RFWr, 
+        input  [4:0]  A1, A2, A3, 
+        input  [31:0] WD, 
+
+        output [31:0] RD1, RD2
+    );
+
+    寄存器堆
+    在clk的边沿，如果 RFWr 则写入 rf[A3] <= WD
+
+    assign RD1 = (A1 != 0) ? rf[A1] : 0;
+    assign RD2 = (A2 != 0) ? rf[A2] : 0;
+
+ctrl.v
+    module ctrl(
+        input  [6:0] Op;       // opcode
+        input  [6:0] Funct7;   // funct7
+        input  [2:0] Funct3;   // funct3
+        input        Zero;
+   
+        output       RegWrite; // control signal for register write
+        output       MemWrite; // control signal for memory write
+        output [5:0] EXTOp;    // control signal to signed extension
+        output [4:0] ALUOp;    // ALU opertion
+        output [2:0] NPCOp;    // next pc operation
+        output       ALUSrc;   // ALU source for A
+        output [2:0] DMType;
+        output [1:0] GPRSel;   // general purpose register selection
+        output [1:0] WDSel;    // (register) write data selection
+    );
+
+    计算控制信号
+
+SCPU.v
+    CPU 文件，有 ctrl, PC, NPC, EXT, RF, alu
+    外部连接了 IM, DM
+
+    module SCPU(
+        input      clk,            // 时钟
+        input      reset,          // 复位
+        input  [4:0] reg_sel,      // debug 用
+        output [31:0] reg_data,    // debug 用
+
+        output [31:0] PC_out,      // PC address
+        input [31:0]  inst_in,     // 取指令
+
+        // memory write 
+        input [31:0]  Data_in,     // data from data memory
+        output    mem_w,           // output: memory write signal
+        output [31:0] Addr_out,    // ALU output
+        output [31:0] Data_out,    // data to data memory
+        output [2:0] DMType        // read/write data length
+    );
+
+sccomp.v
+    完整的处理器（SCPU+DM+IM）
+
+    module sccomp(
+        input          clk;  // 时钟
+        input          rstn; // 复位
+
+        input [4:0]    reg_sel;  // debug 用
+        output [31:0]  reg_data; // debug 用
+        // reg_sel, reg_data 在当前代码中无任何影响
+    );
+
+sccomp_tb.v
+    时钟
