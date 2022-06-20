@@ -15,7 +15,7 @@ module sccomp(clk, rstn, reg_sel, reg_data);
    wire [2:0]     DMType;
 
    wire rst = ~rstn;
-       
+
   // instantiation of single-cycle CPU   
    SCPU U_SCPU(
          .clk(clk),                 // input:  cpu clock

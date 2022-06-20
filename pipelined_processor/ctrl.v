@@ -53,9 +53,9 @@ module ctrl(Op, Funct7, Funct3,
     wire i_slti = itype_r&~Funct3[2]& Funct3[1]&~Funct3[0]; // slti 010
     wire i_sltiu= itype_r&~Funct3[2]& Funct3[1]& Funct3[0]; // sltiu 011
     wire i_slli = itype_r&~Funct3[2]&~Funct3[1]& Funct3[0]; // slli 001
-	
+
   //jalr
-  	wire i_jalr = Op[6]&Op[5]&~Op[4]&~Op[3]&Op[2]&Op[1]&Op[0];//jalr 1100111
+    wire i_jalr = Op[6]&Op[5]&~Op[4]&~Op[3]&Op[2]&Op[1]&Op[0];//jalr 1100111
 
   // s format
     wire stype = ~Op[6]&Op[5]&~Op[4]&~Op[3]&~Op[2]&Op[1]&Op[0];//0100011
@@ -71,7 +71,7 @@ module ctrl(Op, Funct7, Funct3,
     wire i_bge  = sbtype& Funct3[2]&~Funct3[1]& Funct3[0]; // bge 101
     wire i_bltu = sbtype& Funct3[2]& Funct3[1]&~Funct3[0]; // bltu 110
     wire i_bgeu = sbtype& Funct3[2]& Funct3[1]& Funct3[0]; // bgeu 111
-	
+
  // j format
     wire i_jal  = Op[6]& Op[5]&~Op[4]& Op[3]& Op[2]& Op[1]& Op[0];  // jal 1101111
   
@@ -86,11 +86,11 @@ module ctrl(Op, Funct7, Funct3,
 
   // signed extension
   // EXT_CTRL_ITYPE_SHAMT 6'b100000
-  // EXT_CTRL_ITYPE	      6'b010000
-  // EXT_CTRL_STYPE	      6'b001000
-  // EXT_CTRL_BTYPE	      6'b000100
-  // EXT_CTRL_UTYPE	      6'b000010
-  // EXT_CTRL_JTYPE	      6'b000001
+  // EXT_CTRL_ITYPE       6'b010000
+  // EXT_CTRL_STYPE       6'b001000
+  // EXT_CTRL_BTYPE       6'b000100
+  // EXT_CTRL_UTYPE       6'b000010
+  // EXT_CTRL_JTYPE       6'b000001
     assign EXTOp[5] = i_slli | i_srli | i_srai;
     assign EXTOp[4] = i_jalr | i_lb   | i_lh  | i_lw  | i_lbu  | i_lhu | i_addi | i_slti | i_sltiu | i_xori | i_ori | i_andi;
     assign EXTOp[3] = i_sb   | i_sh   | i_sw;
@@ -107,10 +107,10 @@ module ctrl(Op, Funct7, Funct3,
   // NPC_PLUS4   3'b000
   // NPC_BRANCH  3'b001
   // NPC_JUMP    3'b010
-  // NPC_JALR	3'b100
+  // NPC_JALR    3'b100
     assign NPCOp[0] = sbtype;
     assign NPCOp[1] = i_jal;
-	  assign NPCOp[2] = i_jalr;
+    assign NPCOp[2] = i_jalr;
 
   // ALUOp_nop   5'b00000
   // ALUOp_lui   5'b00001
@@ -134,16 +134,16 @@ module ctrl(Op, Funct7, Funct3,
     assign ALUOp[0] = i_jalr|itype_l|stype|i_addi|i_ori|i_add|i_or|i_sll|i_sra|i_sltu
                      |i_srai|i_slli|i_sltiu|i_lui|i_bne|i_bge|i_bgeu;
 
-	  assign ALUOp[1] = i_jalr|itype_l|stype|i_add|i_addi|i_and|i_andi|i_auipc|i_blt|i_bge
+    assign ALUOp[1] = i_jalr|itype_l|stype|i_add|i_addi|i_and|i_andi|i_auipc|i_blt|i_bge
                      |i_slt|i_slti|i_sltu|i_sltiu|i_sll|i_slli;
 
-	  assign ALUOp[2] = i_sll|i_slli | i_and|i_andi |i_or|i_ori |i_xor|i_xori
+    assign ALUOp[2] = i_sll|i_slli | i_and|i_andi |i_or|i_ori |i_xor|i_xori
                      |i_bge|i_blt|i_bne|i_sub|i_beq;
 
-  	assign ALUOp[3] = i_sll|i_slli |i_and|i_andi |i_or|i_ori |i_xor|i_xori
+    assign ALUOp[3] = i_sll|i_slli |i_and|i_andi |i_or|i_ori |i_xor|i_xori
                      |i_sltu|i_sltiu | i_slt|i_slti | i_bltu|i_bgeu;
 
-	  assign ALUOp[4] = i_srl|i_sra |i_srli|i_srai;
+    assign ALUOp[4] = i_srl|i_sra |i_srli|i_srai;
 
 
   // dm_word              3'b000     

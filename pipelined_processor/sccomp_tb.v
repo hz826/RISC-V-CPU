@@ -12,8 +12,8 @@ module sccomp_tb();
       .clk(clk), .rstn(rstn), .reg_sel(reg_sel), .reg_data(reg_data) 
    );
 
-  	integer foutput;
-  	integer counter = 0;
+    integer foutput;
+    integer counter = 0;
    
    initial begin
       $readmemh("Tests/my_test.dat" , U_SCCOMP.U_IM.ROM); // load instructions into instruction memory
@@ -31,7 +31,7 @@ module sccomp_tb();
    
     always begin
     #(50) clk = ~clk;
-	   
+
     if (clk == 1'b1) begin
       // $fdisplay(foutput, "pc: %h  instr: %h", U_SCCOMP.PC, U_SCCOMP.instr);
       // $fdisplay(foutput, "rf: %h", U_SCCOMP.U_SCPU.U_RF.rf[29]);
