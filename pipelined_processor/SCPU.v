@@ -8,27 +8,26 @@
 module ID(
     input  [31:0] PC_in,
     input  [31:0] inst_in,     // instruction
-    input  [31:0] RD1_in,      // read register value
-    input  [31:0] RD2_in,      // read register value
+    input  [31:0] RD1,         // read register value
+    input  [31:0] RD2,         // read register value
 
     // to RF (ID -> RF -> ID)
     output [4:0]  rs1,         // read register id
     output [4:0]  rs2,         // read register id
     
     // to EX
-    output [31:0] RD1,     // read register value
-    output [31:0] RD2,     // read register value
-    output [4:0]  ALUOp,       // ALU opertion
+    output [31:0] ALU_A,       // operator for ALU A
     output [31:0] ALU_B,       // operator for ALU B
+    output [4:0]  ALUOp,       // ALU opertion
 
     // to MEM
     output [31:0] PC,
     output [31:0] immout,      // used in NPC
-    output [2:0]  NPCOp1,      // next PC operation
+    output [2:0]  NPCOp,       // next PC operation
 
     output        MemWrite,    // output: memory write signal
     output [2:0]  DMType,      // read/write data length
-    output [31:0] DateWrite,    // data to data memory
+    output [31:0] DataWrite,   // data to data memory
 
     // to WB
     output        RegWrite,    // control signal to register write
@@ -75,7 +74,7 @@ module ID(
         .Op(Op), .Funct7(Funct7), .Funct3(Funct3),
         // output
         .RegWrite(RegWrite), .MemWrite(MemWrite),
-        .EXTOp(EXTOp), .ALUOp(ALUOp), .NPCOp(NPCOp1), 
+        .EXTOp(EXTOp), .ALUOp(ALUOp), .NPCOp(NPCOp), 
         .ALUSrc(ALUSrc), .GPRSel(GPRSel), .WDSel(WDSel), .DMType(DMType)
     );
 
@@ -87,67 +86,118 @@ module ID(
 
     /*********************** after reading registers ************************/
 
-    assign ALU_B = (ALUSrc) ? immout : RD2_in;
-    assign DateWrite = RD2_in;
-    assign RD1 = RD1_in;
-    assign RD2 = RD2_in;
+    assign ALU_A = RD1;
+    assign ALU_B = (ALUSrc) ? immout : RD2;
+    assign DataWrite = RD2;
     assign PC = PC_in;
 endmodule
 
 module EX(
-    input  [31:0] RD1_in,      // read register value
-    input  [31:0] RD2_in,      // read register value
-    input  [4:0]  ALUOp,       // ALU opertion
+    // to EX
+    input  [31:0] ALU_A,       // operator for ALU A
     input  [31:0] ALU_B,       // operator for ALU B
+    input  [4:0]  ALUOp,       // ALU opertion
 
     // to MEM
-    input  [31:0] PC,
-    input  [31:0] immout,      // used in NPC
-    input  [2:0]  NPCOp1,      // next PC operation
+    input  [31:0] PC_in,
+    input  [31:0] immout_in,   // used in NPC
+    input  [2:0]  NPCOp_in,    // next PC operation
 
-    input         MemWrite,    // output: memory write signal
-    input  [2:0]  DMType,      // read/write data length
-    input  [31:0] DateWrite,   // data to data memory
+    input         MemWrite_in, // output: memory write signal
+    input  [2:0]  DMType_in,   // read/write data length
+    input  [31:0] DataWrite_in,// data to data memory
 
     // to WB
-    input         RegWrite,    // control signal to register write
-    input  [4:0]  rd,          // write register id
-    input  [1:0]  WDSel        // (register) write data selection
+    input         RegWrite_in, // control signal to register write
+    input  [4:0]  rd_in,       // write register id
+    input  [1:0]  WDSel_in,    // register write data selection
 
     /**********************************************/
-
-    output [31:0] RD1,         // read register value
-    output [31:0] RD2,         // read register value
-    output [4:0]  ALUOp,       // ALU opertion
-    output [31:0] ALU_B,       // operator for ALU B
 
     // to MEM
     output [31:0] PC,
     output [31:0] immout,      // used in NPC
-    output [2:0]  NPCOp1,      // next PC operation
+    output [2:0]  NPCOp,       // next PC operation NPCOp2[0] = NPCOp1[0] & Zero;
 
     output        MemWrite,    // output: memory write signal
     output [2:0]  DMType,      // read/write data length
-    output [31:0] DateWrite,    // data to data memory
+    output [31:0] DataWrite,   // data to data memory
+    output [31:0] aluout,
 
     // to WB
     output        RegWrite,    // control signal to register write
     output [4:0]  rd,          // write register id
-    output [1:0]  WDSel        // (register) write data selection
+    output [1:0]  WDSel,       // register write data selection
+    output [31:0] WD           // register write data
 );
 
+    wire        Zero;          // ALU ouput zero
+
+    /*************************** ALU calculating ***************************/
+
+    // instantiation of alu unit
+    alu U_alu(.A(ALU_A), .B(ALU_B), .PC(PC), .ALUOp(ALUOp), .C(aluout), .Zero(Zero));
+
+    /************************** after calculating **************************/
+
+    assign PC = PC_in;
+    assign immout = immout_in;
+    assign NPCOp[0] = NPCOp_in[0] & Zero;
+    assign NPCOp[1] = NPCOp_in[1];
+    assign NPCOp[2] = NPCOp_in[2];
+
+    assign MemWrite = MemWrite_in;
+    assign DMType = DMType_in;
+    assign DataWrite = DataWrite_in;
+
+    assign RegWrite = RegWrite_in;
+    assign rd = rd_in;
+    assign WDSel = WDSel_in;
+    assign WD = (WDSel == `WDSel_FromPC) ? PC+4 : aluout;
 endmodule
 
 module MEM(
-    
+    // MEM -> DM -> MEM
+    output        MemWrite,    // output: memory write signal
+    output [31:0] AddrWrite,   // ALU output
+    output [31:0] DataWrite,   // data to data memory
+    output [2:0]  DMType,      // read/write data length
+    input  [31:0] Data_in,     // data from data memory
+
+    // to MEM
+    // input  [31:0] PC,
+    // input  [31:0] immout,      // used in NPC
+    // input  [2:0]  NPCOp,       // next PC operation NPCOp2[0] = NPCOp1[0] & Zero;
+
+    input         MemWrite_in, // output: memory write signal
+    input  [2:0]  DMType_in,   // read/write data length
+    input  [31:0] DataWrite_in,// data to data memory
+    input  [31:0] aluout,
+
+    // to WB
+    input         RegWrite_in, // control signal to register write
+    input  [4:0]  rd_in,       // write register id
+    input  [1:0]  WDSel_in,    // register write data selection
+    input  [31:0] WD_in,       // register write data
+
+    /**********************************************/
+
+    // to WB
+    output        RegWrite,    // control signal to register write
+    output [4:0]  rd,          // write register id
+    output [31:0] WD           // register write data
 );
 
-endmodule
+    /**************************** DM read/write ****************************/
 
-module WB(
-    
-);
+    assign MemWrite = MemWrite_in;
+    assign AddrWrite = aluout;
+    assign DataWrite = DataWrite_in;
+    assign DMType = DMType_in;
 
+    assign RegWrite = RegWrite_in;
+    assign rd = rd_in;
+    assign WD = (WDSel_in == `WDSel_FromMEM) ? Data_in : WD_in;
 endmodule
 
 module SCPU(
@@ -157,27 +207,22 @@ module SCPU(
     output [31:0] reg_data,   // selected register data (for debug use)
 
     // IM
-    output [31:0] PC,      // PC address
+    output [31:0] PC_out,     // PC address
+    input  [31:0] inst_in,    // instruction
    
-    // DM
-    output [31:0] Addr_out,   // ALU output
-    
+   // DM
+    output        mem_w,      // output: memory write signal
+    output [31:0] AddrWrite,   // ALU output
+    output [31:0] Data_out,   // data to data memory
+    output [2:0]  DMType,     // read/write data length
     input  [31:0] Data_in     // data from data memory
 );
 
-    wire [2:0]  NPCOp2;      // next PC operation NPCOp2[0] = NPCOp1[0] & Zero;
-    wire        Zero;        // ALU ouput zero
+    // wire [31:0] NPC;         // next PC
+    // NPC U_NPC(.PC(PC), .NPCOp(NPCOp), .IMM(immout), .NPC(NPC), .aluout(aluout));
 
-    wire [31:0] NPC;         // next PC
-    
-    // wire [4:0]  A3;          // register address for write (unused)
-    wire [31:0] WD;          // register write data
-
-    wire [31:0] aluout;
-
-    // instantiation of pc unit
-    PC U_PC(.clk(clk), .rst(reset), .NPC(NPC), .PC(PC));
-    NPC U_NPC(.PC(PC), .NPCOp(NPCOp2), .IMM(immout), .NPC(NPC), .aluout(aluout));
+    // // instantiation of pc unit
+    // PC U_PC(.clk(clk), .rst(reset), .NPC(NPC), .PC(PC));
     
     RF U_RF(
         .clk(clk), .rst(reset),
@@ -188,15 +233,4 @@ module SCPU(
         //.reg_sel(reg_sel),
         //.reg_data(reg_data)
     );
-
-    // instantiation of alu unit
-    alu U_alu(.A(RD1), .B(ALU_B), .ALUOp(ALUOp), .C(aluout), .Zero(Zero), .PC(PC));
-
-    assign Addr_out=aluout;
-
-    assign NPCOp2[0] = NPCOp1[0] & Zero;
-    assign NPCOp2[1] = NPCOp1[1];
-    assign NPCOp2[2] = NPCOp1[2];
-
-    assign WD = (WDSel == `WDSel_FromALU) ? aluout : ((WDSel == `WDSel_FromMEM) ? Data_in : PC+4);
 endmodule
