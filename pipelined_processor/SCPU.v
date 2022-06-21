@@ -1,9 +1,22 @@
 `include "ctrl.v"
 `include "PC.v"
-`include "NPC.v"
 `include "EXT.v"
 `include "RF.v"
 `include "ALU.v"
+
+module IF(
+    input      [31:0] PC_in,
+    input      [31:0] inst_in,
+    
+    output reg [31:0] PC_out,
+    output reg [31:0] inst_out
+);
+
+    always @(*) begin
+        PC_out <= PC_in;
+        inst_out <= inst_in;
+    end
+endmodule
 
 module ID(
     input  [31:0] PC_in,
@@ -231,14 +244,8 @@ module SCPU(
     input  [31:0] Data_in     // data from data memory
 );
 
-    // wire [31:0] NPC;         // next PC
-    // NPC U_NPC(.PC(PC), .NPCOp(NPCOp), .IMM(immout), .NPC(NPC), .aluout(aluout));
-
-    // // instantiation of pc unit
-    // PC U_PC(.clk(clk), .rst(reset), .NPC(NPC), .PC(PC));
-
-    wire [31:0] PC_in;
-    wire [31:0] inst_in;
+    wire [31:0] PC;
+    wire [31:0] IF_ID_inst;
 
     wire [31:0] RD1;
     wire [31:0] RD2;
@@ -270,10 +277,32 @@ module SCPU(
     wire [1:0]  EX_MEM_WDSel;
     wire [31:0] EX_MEM_WD;
 
+    wire [31:0] MEM_NPC;         // next PC
+
     wire        MEM_WB_RegWrite;
     wire [4:0]  MEM_WB_rd;
     wire [31:0] MEM_WB_WD;
 
+    // IF
+    PC U_PC(
+        .clk(clk), .rst(reset), 
+        .PC_stall(1'b0), .NPC(MEM_WB_NPC), // input
+        .PC(PC)                      // output
+    ); // PC = NPC when posedge clk
+    assign PC_out = PC;
+    // PC -> IM -> inst_in
+
+    IF U_IF(
+        // input
+        .PC_in(PC),
+        .inst_in(inst_in),
+        // output
+        .PC_out(IF_ID_PC),
+        .inst_out(IF_ID_inst)
+    );
+
+    // ID
+    // WB
     RF U_RF(
         .clk(clk), .rst(reset),
         .A1(rs1), .A2(rs2), .RD1(RD1), .RD2(RD2), // read
@@ -284,7 +313,7 @@ module SCPU(
 
     ID U_ID(
         // IF_ID
-        .PC_in(PC_in), .inst_in(inst_in),
+        .PC_in(IF_ID_PC), .inst_in(IF_ID_inst),
 
         // ID -> RF -> ID
         .RD1(RD1), .RD2(RD2), .rs1(rs1), .rs2(rs2),
@@ -304,6 +333,7 @@ module SCPU(
         .WDSel(ID_EX_WDSel)
     );
 
+    //  EX                                                                                      
     EX U_EX(
         // ID_EX
         .ALU_A(ID_EX_ALU_A),
@@ -331,6 +361,16 @@ module SCPU(
         .rd(EX_MEM_rd),
         .WDSel(EX_MEM_WDSel),
         .WD(EX_MEM_WD)
+    );
+
+    // MEM
+    // NPC
+    NPC U_NPC(
+        .PC(EX_MEM_PC), 
+        .NPCOp(EX_MEM_NPCOp), 
+        .IMM(EX_MEM_immout), 
+        .aluout(EX_MEM_aluout),  // input
+        .NPC(MEM_NPC)         // output
     );
 
     // DM
