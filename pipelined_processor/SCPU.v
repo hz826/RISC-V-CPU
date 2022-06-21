@@ -16,23 +16,23 @@ module ID(
     output [4:0]  rs2,         // read register id
     
     // to EX
-    output [31:0] ALU_A,       // operator for ALU A
-    output [31:0] ALU_B,       // operator for ALU B
-    output [4:0]  ALUOp,       // ALU opertion
+    output reg [31:0] ALU_A,       // operator for ALU A
+    output reg [31:0] ALU_B,       // operator for ALU B
+    output reg [4:0]  ALUOp,       // ALU opertion
 
     // to MEM
-    output [31:0] PC,
-    output [31:0] immout,      // used in NPC
-    output [2:0]  NPCOp,       // next PC operation
+    output reg [31:0] PC,
+    output reg [31:0] immout,      // used in NPC
+    output reg [2:0]  NPCOp,       // next PC operation
 
-    output        MemWrite,    // output: memory write signal
-    output [2:0]  DMType,      // read/write data length
-    output [31:0] DataWrite,   // data to data memory
+    output reg        MemWrite,    // output: memory write signal
+    output reg [2:0]  DMType,      // read/write data length
+    output reg [31:0] DataWrite,   // data to data memory
 
     // to WB
-    output        RegWrite,    // control signal to register write
-    output [4:0]  rd,          // write register id
-    output [1:0]  WDSel        // (register) write data selection
+    output reg        RegWrite,    // control signal to register write
+    output reg [4:0]  rd,          // write register id
+    output reg [1:0]  WDSel        // (register) write data selection
 );
 
     wire [4:0]  iimm_shamt;
@@ -48,8 +48,16 @@ module ID(
 
     wire [5:0]  EXTOp;       // control signal to signed extension
     wire        ALUSrc;      // ALU source for B
-
     wire [1:0]  GPRSel;      // general purpose register selection (unused)
+
+    wire [4:0]  rd_w;
+    wire        RegWrite_w;
+    wire        MemWrite_w;
+    wire [4:0]  ALUOp_w;
+    wire [2:0]  NPCOp_w;
+    wire [2:0]  DMType_w;
+    wire [1:0]  WDSel_w;
+    wire [31:0] immout_w;
 
     /************************ processing instruction ************************/
     assign iimm_shamt=inst_in[24:20];
@@ -64,7 +72,7 @@ module ID(
     assign Funct3 = inst_in[14:12]; // funct3
     assign rs1 = inst_in[19:15];    // rs1
     assign rs2 = inst_in[24:20];    // rs2
-    assign rd = inst_in[11:7];      // rd
+    assign rd_w = inst_in[11:7];    // rd
     // assign Imm12 = inst_in[31:20];  // 12-bit immediate
     // assign IMM = inst_in[31:12];    // 20-bit immediate
 
@@ -73,23 +81,36 @@ module ID(
         // input
         .Op(Op), .Funct7(Funct7), .Funct3(Funct3),
         // output
-        .RegWrite(RegWrite), .MemWrite(MemWrite),
-        .EXTOp(EXTOp), .ALUOp(ALUOp), .NPCOp(NPCOp), 
-        .ALUSrc(ALUSrc), .GPRSel(GPRSel), .WDSel(WDSel), .DMType(DMType)
+        .RegWrite(RegWrite_w), .MemWrite(MemWrite_w),
+        .EXTOp(EXTOp), .ALUOp(ALUOp_w), .NPCOp(NPCOp_w), 
+        .ALUSrc(ALUSrc), .GPRSel(GPRSel), .WDSel(WDSel_w), .DMType(DMType_w)
     );
 
     EXT U_EXT(
         .iimm_shamt(iimm_shamt), .iimm(iimm), .simm(simm), .bimm(bimm),
         .uimm(uimm), .jimm(jimm),
-        .EXTOp(EXTOp), .immout(immout)
+        .EXTOp(EXTOp), .immout(immout_w)
     );
 
     /*********************** after reading registers ************************/
 
-    assign ALU_A = RD1;
-    assign ALU_B = (ALUSrc) ? immout : RD2;
-    assign DataWrite = RD2;
-    assign PC = PC_in;
+    always @(*) begin
+        ALU_A <= RD1;
+        ALU_B <= (ALUSrc) ? immout : RD2;
+        ALUOp <= ALUOp_w;
+
+        PC <= PC_in;
+        immout <= immout_w;
+        NPCOp <= NPCOp_w;
+
+        MemWrite <= MemWrite_w;
+        DMType <= DMType_w;
+        DataWrite <= RD2;
+
+        RegWrite <= RegWrite_w;
+        rd <= rd_w;
+        WDSel <= WDSel_w;
+    end
 endmodule
 
 module EX(
@@ -115,64 +136,57 @@ module EX(
     /**********************************************/
 
     // to MEM
-    output [31:0] PC,
-    output [31:0] immout,      // used in NPC
-    output [2:0]  NPCOp,       // next PC operation NPCOp2[0] = NPCOp1[0] & Zero;
+    output reg [31:0] PC,
+    output reg [31:0] immout,      // used in NPC
+    output reg [2:0]  NPCOp,       // next PC operation NPCOp2[0] = NPCOp1[0] & Zero;
 
-    output        MemWrite,    // output: memory write signal
-    output [2:0]  DMType,      // read/write data length
-    output [31:0] DataWrite,   // data to data memory
-    output [31:0] aluout,
+    output reg        MemWrite,    // output: memory write signal
+    output reg [2:0]  DMType,      // read/write data length
+    output reg [31:0] DataWrite,   // data to data memory
+    output reg [31:0] aluout,
 
     // to WB
-    output        RegWrite,    // control signal to register write
-    output [4:0]  rd,          // write register id
-    output [1:0]  WDSel,       // register write data selection
-    output [31:0] WD           // register write data
+    output reg        RegWrite,    // control signal to register write
+    output reg [4:0]  rd,          // write register id
+    output reg [1:0]  WDSel,       // register write data selection
+    output reg [31:0] WD           // register write data
 );
 
     wire        Zero;          // ALU ouput zero
+    wire [31:0] aluout_w;
+    wire [31:0] WD_w;
 
     /*************************** ALU calculating ***************************/
 
     // instantiation of alu unit
-    alu U_alu(.A(ALU_A), .B(ALU_B), .PC(PC), .ALUOp(ALUOp), .C(aluout), .Zero(Zero));
+    alu U_alu(.A(ALU_A), .B(ALU_B), .PC(PC), .ALUOp(ALUOp), .C(aluout_w), .Zero(Zero));
+    
+    assign WD_w = (WDSel == `WDSel_FromPC) ? PC_in+4 : aluout;
 
     /************************** after calculating **************************/
 
-    assign PC = PC_in;
-    assign immout = immout_in;
-    assign NPCOp[0] = NPCOp_in[0] & Zero;
-    assign NPCOp[1] = NPCOp_in[1];
-    assign NPCOp[2] = NPCOp_in[2];
+    always @(*) begin
+        PC <= PC_in;
+        immout <= immout_in;
+        NPCOp[0] <= NPCOp_in[0] & Zero;
+        NPCOp[1] <= NPCOp_in[1];
+        NPCOp[2] <= NPCOp_in[2];
 
-    assign MemWrite = MemWrite_in;
-    assign DMType = DMType_in;
-    assign DataWrite = DataWrite_in;
+        MemWrite <= MemWrite_in;
+        DMType <= DMType_in;
+        DataWrite <= DataWrite_in;
+        aluout <= aluout_w;
 
-    assign RegWrite = RegWrite_in;
-    assign rd = rd_in;
-    assign WDSel = WDSel_in;
-    assign WD = (WDSel == `WDSel_FromPC) ? PC+4 : aluout;
+        RegWrite <= RegWrite_in;
+        rd <= rd_in;
+        WDSel <= WDSel_in;
+        WD <= WD_w;
+    end
 endmodule
 
 module MEM(
     // MEM -> DM -> MEM
-    output        MemWrite,    // output: memory write signal
-    output [31:0] AddrWrite,   // ALU output
-    output [31:0] DataWrite,   // data to data memory
-    output [2:0]  DMType,      // read/write data length
     input  [31:0] Data_in,     // data from data memory
-
-    // to MEM
-    // input  [31:0] PC,
-    // input  [31:0] immout,      // used in NPC
-    // input  [2:0]  NPCOp,       // next PC operation NPCOp2[0] = NPCOp1[0] & Zero;
-
-    input         MemWrite_in, // output: memory write signal
-    input  [2:0]  DMType_in,   // read/write data length
-    input  [31:0] DataWrite_in,// data to data memory
-    input  [31:0] aluout,
 
     // to WB
     input         RegWrite_in, // control signal to register write
@@ -183,21 +197,20 @@ module MEM(
     /**********************************************/
 
     // to WB
-    output        RegWrite,    // control signal to register write
-    output [4:0]  rd,          // write register id
-    output [31:0] WD           // register write data
+    output reg        RegWrite,    // control signal to register write
+    output reg [4:0]  rd,          // write register id
+    output reg [31:0] WD           // register write data
 );
 
     /**************************** DM read/write ****************************/
 
-    assign MemWrite = MemWrite_in;
-    assign AddrWrite = aluout;
-    assign DataWrite = DataWrite_in;
-    assign DMType = DMType_in;
-
-    assign RegWrite = RegWrite_in;
-    assign rd = rd_in;
-    assign WD = (WDSel_in == `WDSel_FromMEM) ? Data_in : WD_in;
+    assign WD_w = (WDSel_in == `WDSel_FromMEM) ? Data_in : WD_in;
+    
+    always @(*) begin
+        RegWrite <= RegWrite_in;
+        rd <= rd_in;
+        WD <= WD_w;
+    end
 endmodule
 
 module SCPU(
@@ -223,14 +236,124 @@ module SCPU(
 
     // // instantiation of pc unit
     // PC U_PC(.clk(clk), .rst(reset), .NPC(NPC), .PC(PC));
-    
+
+    wire [31:0] PC_in;
+    wire [31:0] inst_in;
+
+    wire [31:0] RD1;
+    wire [31:0] RD2;
+    wire [4:0] rs1;
+    wire [4:0] rs2;
+
+    wire [31:0] ID_EX_ALU_A;
+    wire [31:0] ID_EX_ALU_B;
+    wire [4:0]  ID_EX_ALUOp;
+    wire [31:0] ID_EX_PC;
+    wire [31:0] ID_EX_immout;
+    wire [2:0]  ID_EX_NPCOp;
+    wire        ID_EX_MemWrite;
+    wire [2:0]  ID_EX_DMType;
+    wire [31:0] ID_EX_DataWrite;
+    wire        ID_EX_RegWrite;
+    wire [4:0]  ID_EX_rd;
+    wire [1:0]  ID_EX_WDSel;
+
+    wire [31:0] EX_MEM_PC;
+    wire [31:0] EX_MEM_immout;
+    wire [2:0]  EX_MEM_NPCOp;
+    wire        EX_MEM_MemWrite;
+    wire [2:0]  EX_MEM_DMType;
+    wire [31:0] EX_MEM_DataWrite;
+    wire [31:0] EX_MEM_aluout;
+    wire        EX_MEM_RegWrite;
+    wire [4:0]  EX_MEM_rd;
+    wire [1:0]  EX_MEM_WDSel;
+    wire [31:0] EX_MEM_WD;
+
+    wire        MEM_WB_RegWrite;
+    wire [4:0]  MEM_WB_rd;
+    wire [31:0] MEM_WB_WD;
+
     RF U_RF(
         .clk(clk), .rst(reset),
-        .RFWr(RegWrite), 
-        .A1(rs1), .A2(rs2), .A3(rd), 
-        .WD(WD), 
-        .RD1(RD1), .RD2(RD2)
+        .A1(rs1), .A2(rs2), .RD1(RD1), .RD2(RD2), // read
+        .RFWr(MEM_WB_RegWrite), .A3(MEM_WB_rd), .WD(MEM_WB_WD)         // write
         //.reg_sel(reg_sel),
         //.reg_data(reg_data)
     );
+
+    ID U_ID(
+        // IF_ID
+        .PC_in(PC_in), .inst_in(inst_in),
+
+        // ID -> RF -> ID
+        .RD1(RD1), .RD2(RD2), .rs1(rs1), .rs2(rs2),
+
+        // ID_EX
+        .ALU_A(ID_EX_ALU_A),
+        .ALU_B(ID_EX_ALU_B),
+        .ALUOp(ID_EX_ALUOp),
+        .PC(ID_EX_PC),
+        .immout(ID_EX_immout),
+        .NPCOp(ID_EX_NPCOp),
+        .MemWrite(ID_EX_MemWrite),
+        .DMType(ID_EX_DMType),
+        .DataWrite(ID_EX_DataWrite),
+        .RegWrite(ID_EX_RegWrite),
+        .rd(ID_EX_rd),
+        .WDSel(ID_EX_WDSel)
+    );
+
+    EX U_EX(
+        // ID_EX
+        .ALU_A(ID_EX_ALU_A),
+        .ALU_B(ID_EX_ALU_B),
+        .ALUOp(ID_EX_ALUOp),
+        .PC_in(ID_EX_PC),
+        .immout_in(ID_EX_immout),
+        .NPCOp_in(ID_EX_NPCOp),
+        .MemWrite_in(ID_EX_MemWrite),
+        .DMType_in(ID_EX_DMType),
+        .DataWrite_in(ID_EX_DataWrite),
+        .RegWrite_in(ID_EX_RegWrite),
+        .rd_in(ID_EX_rd),
+        .WDSel_in(ID_EX_WDSel),
+
+        // EX_MEM
+        .PC(EX_MEM_PC),
+        .immout(EX_MEM_immout),
+        .NPCOp(EX_MEM_NPCOp),
+        .MemWrite(EX_MEM_MemWrite),
+        .DMType(EX_MEM_DMType),
+        .DataWrite(EX_MEM_DataWrite),
+        .aluout(EX_MEM_aluout),
+        .RegWrite(EX_MEM_RegWrite),
+        .rd(EX_MEM_rd),
+        .WDSel(EX_MEM_WDSel),
+        .WD(EX_MEM_WD)
+    );
+
+    // DM
+    assign mem_w     = EX_MEM_MemWrite;
+    assign AddrWrite = EX_MEM_aluout;
+    assign Data_out  = EX_MEM_DataWrite;
+    assign DMType    = EX_MEM_DMType;
+    
+    MEM U_MEM(
+        .Data_in(Data_in),
+        .RegWrite_in(EX_MEM_RegWrite),
+        .rd_in(EX_MEM_rd),
+        .WDSel_in(EX_MEM_WDSel),
+        .WD_in(EX_MEM_WD),
+
+        .RegWrite(MEM_WB_RegWrite),
+        .rd(MEM_WB_rd),
+        .WD(MEM_WB_WD)
+    );
+
+    // to MEM
+    // input         MemWrite_in, // output: memory write signal
+    // input  [2:0]  DMType_in,   // read/write data length
+    // input  [31:0] DataWrite_in,// data to data memory
+    // input  [31:0] aluout,
 endmodule
