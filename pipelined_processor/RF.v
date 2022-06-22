@@ -10,7 +10,7 @@ module RF(
   reg [31:0] rf[31:0];
   integer i;
 
-  always @(posedge clk, posedge rst)
+  always @(negedge clk, posedge rst)
     if (rst) begin    //  reset
       for (i=1; i<32; i=i+1) rf[i] <= 0;
     end
