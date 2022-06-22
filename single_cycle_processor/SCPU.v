@@ -15,13 +15,31 @@ module SCPU(
     output [31:0] PC_out,      // PC address
     input [31:0]  inst_in,     // instruction
    
-   // DM
+    // DM
     output    mem_w,          // output: memory write signal
     output [31:0] Addr_out,   // ALU output
     output [31:0] Data_out,   // data to data memory
     output [2:0] DMType,      // read/write data length
     input [31:0]  Data_in     // data from data memory
 );
+/*
+module SCPU(
+    input clk,
+        input reset,
+        input MIO_ready,
+                        
+        input [31:0]inst_in,
+        input [31:0]Data_in,	
+                        
+        output mem_w,
+        output[31:0]PC_out,
+        output[31:0]Addr_out,
+        output[31:0]Data_out, 
+        output CPU_MIO,
+        input INT
+    );			  
+endmodule
+*/
 
     wire        RegWrite;    // control signal to register write
     wire [5:0]  EXTOp;       // control signal to signed extension
