@@ -1,3 +1,7 @@
+`include "ctrl.v"
+`include "EXT.v"
+`include "ALU.v"
+
 module IF(
     input      [31:0] PC_in,
     input      [31:0] inst_in,
@@ -168,7 +172,7 @@ module EX(
     // instantiation of alu unit
     alu U_alu(.A(ALU_A), .B(ALU_B), .PC(PC), .ALUOp(ALUOp), .C(aluout_w), .Zero(Zero));
     
-    assign WD_w = (WDSel == `WDSel_FromPC) ? PC_in+4 : aluout;
+    assign WD_w = (WDSel_in == `WDSel_FromPC) ? PC_in+4 : aluout_w;
 
     /************************** after calculating **************************/
 
@@ -211,6 +215,7 @@ module MEM(
 
     /**************************** DM read/write ****************************/
 
+    wire [31:0] WD_w;
     assign WD_w = (WDSel_in == `WDSel_FromMEM) ? Data_in : WD_in;
     
     always @(*) begin

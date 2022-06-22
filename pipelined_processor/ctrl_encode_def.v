@@ -4,6 +4,10 @@
 `define NPC_JUMP    3'b010
 `define NPC_JALR    3'b100
 
+`define PC_STALL    3'b100
+`define PC_PLUS4    3'b010
+`define PC_JUMP     3'b001
+
 // ALU control signal
 `define ALU_NOP   3'b000 
 `define ALU_ADD   3'b001

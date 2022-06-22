@@ -1,8 +1,5 @@
-`include "ctrl.v"
 `include "PC.v"
-`include "EXT.v"
 `include "RF.v"
-`include "ALU.v"
 `include "pipeline.v"
 
 module SCPU(
@@ -17,19 +14,22 @@ module SCPU(
    
    // DM
     output        mem_w,      // output: memory write signal
-    output [31:0] AddrWrite,   // ALU output
+    output [31:0] Addr_out,   // read/write address
     output [31:0] Data_out,   // data to data memory
     output [2:0]  DMType,     // read/write data length
     input  [31:0] Data_in     // data from data memory
 );
 
     wire [31:0] PC;
+    wire [2:0]  PCOP;
+
+    wire [31:0] IF_ID_PC;
     wire [31:0] IF_ID_inst;
 
     wire [31:0] RD1;
     wire [31:0] RD2;
-    wire [4:0] rs1;
-    wire [4:0] rs2;
+    wire [4:0]  rs1;
+    wire [4:0]  rs2;
 
     wire [31:0] ID_EX_ALU_A;
     wire [31:0] ID_EX_ALU_B;
@@ -62,11 +62,12 @@ module SCPU(
     wire [4:0]  MEM_WB_rd;
     wire [31:0] MEM_WB_WD;
 
+    assign PCOP = (EX_MEM_NPCOp == `NPC_PLUS4) ? `PC_PLUS4 : `PC_JUMP;
     // IF
     PC U_PC(
         .clk(clk), .rst(reset), 
-        .PC_stall(1'b0), .NPC(MEM_WB_NPC), // input
-        .PC(PC)                      // output
+        .PCOP(PCOP), .NPC(MEM_NPC), // input
+        .PC(PC)                             // output
     ); // PC = NPC when posedge clk
     assign PC_out = PC;
     // PC -> IM -> inst_in
@@ -154,7 +155,7 @@ module SCPU(
 
     // DM
     assign mem_w     = EX_MEM_MemWrite;
-    assign AddrWrite = EX_MEM_aluout;
+    assign Addr_out  = EX_MEM_aluout;
     assign Data_out  = EX_MEM_DataWrite;
     assign DMType    = EX_MEM_DMType;
     
