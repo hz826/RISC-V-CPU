@@ -19,12 +19,12 @@ module sccomp_tb();
     initial begin
         $dumpfile("wave.vcd");
         $dumpvars(0, U_SCCOMP.U_SCPU);
-        // for (i=0; i<10; i=i+1) 
-        //     $dumpvars(0, U_SCCOMP.U_SCPU.U_RF.rf[i]);
+        for (i=0; i<10; i=i+1) 
+            $dumpvars(0, U_SCCOMP.U_SCPU.U_RF.rf[i]);
     end
    
     initial begin
-        $readmemh("Tests/Test_37_Instr.dat" , U_SCCOMP.U_IM.ROM); // load instructions into instruction memory
+        $readmemh("../tests/test.dat" , U_SCCOMP.U_IM.ROM); // load instructions into instruction memory
         // $monitor("PC = 0x%8X, instr = 0x%8X", U_SCCOMP.PC, U_SCCOMP.instr); // used for debug
         // foutput = $fopen("results.txt");
         clk = 1;
@@ -66,7 +66,7 @@ module sccomp_tb();
         if (
                (counter == 1000) 
             || (U_SCCOMP.U_SCPU.PC_out === 32'hxxxxxxxx)
-            || (U_SCCOMP.PC == 32'hf0000100)
+            || (U_SCCOMP.PC == 32'h00000100)
             // || (U_SCCOMP.U_SCPU.U_RF.rf[31] == 32'h100)
         ) begin
             // $fclose(foutput);

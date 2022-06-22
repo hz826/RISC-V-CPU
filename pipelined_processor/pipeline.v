@@ -3,6 +3,7 @@
 `include "ALU.v"
 
 module IF(
+    input             clk,
     input      [31:0] PC_in,
     input      [31:0] inst_in,
     
@@ -10,13 +11,14 @@ module IF(
     output reg [31:0] inst_out
 );
 
-    always @(*) begin
+    always @(posedge clk) begin
         PC_out <= PC_in;
         inst_out <= inst_in;
     end
 endmodule
 
 module ID(
+    input         clk,
     input  [31:0] PC_in,
     input  [31:0] inst_in,     // instruction
     input  [31:0] RD1,         // read register value
@@ -105,9 +107,9 @@ module ID(
 
     /*********************** after reading registers ************************/
 
-    always @(*) begin
+    always @(posedge clk) begin
         ALU_A <= RD1;
-        ALU_B <= (ALUSrc) ? immout : RD2;
+        ALU_B <= (ALUSrc) ? immout_w : RD2;
         ALUOp <= ALUOp_w;
 
         PC <= PC_in;
@@ -125,6 +127,7 @@ module ID(
 endmodule
 
 module EX(
+    input         clk,
     // to EX
     input  [31:0] ALU_A,       // operator for ALU A
     input  [31:0] ALU_B,       // operator for ALU B
@@ -176,7 +179,7 @@ module EX(
 
     /************************** after calculating **************************/
 
-    always @(*) begin
+    always @(posedge clk) begin
         PC <= PC_in;
         immout <= immout_in;
         NPCOp[0] <= NPCOp_in[0] & Zero;
@@ -196,6 +199,7 @@ module EX(
 endmodule
 
 module MEM(
+    input         clk,
     // MEM -> DM -> MEM
     input  [31:0] Data_in,     // data from data memory
 
@@ -218,7 +222,7 @@ module MEM(
     wire [31:0] WD_w;
     assign WD_w = (WDSel_in == `WDSel_FromMEM) ? Data_in : WD_in;
     
-    always @(*) begin
+    always @(posedge clk) begin
         RegWrite <= RegWrite_in;
         rd <= rd_in;
         WD <= WD_w;

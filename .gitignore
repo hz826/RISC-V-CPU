@@ -1,3 +1,5 @@
 *.vcd
 *.out
 *.txt
+*.html
+venus_files/

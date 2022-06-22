@@ -4,4 +4,7 @@ sccomp_tb.v.out : *.v
 comp : sccomp_tb.v.out
 
 run : comp
-	vvp -n sccomp_tb.v.out
+	vvp -n sccomp_tb.v.out > output.txt
+
+wave : run
+	gtkwave wave.vcd
