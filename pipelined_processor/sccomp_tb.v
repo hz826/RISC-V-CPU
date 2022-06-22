@@ -19,8 +19,8 @@ module sccomp_tb();
     initial begin
         $dumpfile("wave.vcd");
         $dumpvars(0, U_SCCOMP.U_SCPU);
-        for (i=0; i<10; i=i+1) 
-            $dumpvars(0, U_SCCOMP.U_SCPU.U_RF.rf[i]);
+        // for (i=0; i<10; i=i+1) 
+        //     $dumpvars(0, U_SCCOMP.U_SCPU.U_RF.rf[i]);
     end
    
     initial begin
@@ -59,9 +59,9 @@ module sccomp_tb();
         $display("");
         $display("pc: %h", U_SCCOMP.PC);
         $display("instr: %h", U_SCCOMP.U_SCPU.inst_in);
-        $display("rs1: %h  rs2: %h", U_SCCOMP.U_SCPU.rs1, U_SCCOMP.U_SCPU.rs2);
-        $display("aluout: %h", U_SCCOMP.U_SCPU.EX_MEM_aluout);
-        $display("immout: %h", U_SCCOMP.U_SCPU.EX_MEM_immout);
+        // $display("rs1: %h  rs2: %h", U_SCCOMP.U_SCPU.rs1, U_SCCOMP.U_SCPU.rs2);
+        // $display("aluout: %h", U_SCCOMP.U_SCPU.EX_MEM_aluout);
+        // $display("immout: %h", U_SCCOMP.U_SCPU.EX_MEM_immout);
 
         if (
                (counter == 1000) 
