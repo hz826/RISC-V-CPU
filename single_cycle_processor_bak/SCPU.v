@@ -4,26 +4,42 @@
 `include "EXT.v"
 `include "RF.v"
 `include "ALU.v"
-`include "DM_ctrl.v"
 
 module SCPU(
-    input         clk,          // clock
-    input         reset,        // reset
-    input         INT,          // not used
-    input         MIO_ready,    // not used
-    output        CPU_MIO,      // not used
+    input      clk,           // clock
+    input      reset,         // reset
+    input  [4:0]  reg_sel,    // register selection     (for debug use)
+    output [31:0] reg_data,   // selected register data (for debug use)
 
     // IM
-    output [31:0] PC_out,       // PC address
-    input  [31:0] inst_in,      // instruction
+    output [31:0] PC_out,      // PC address
+    input [31:0]  inst_in,     // instruction
    
     // DM
-    output        mem_w,        // output: memory write signal
-    output [3:0]  wea,          // write enable bit
-    output [31:0] Addr_out,     // ALU output
-    output [31:0] dm_Data_out,  // data to data memory
-    input  [31:0] dm_Data_in    // data from data memory
+    output    mem_w,          // output: memory write signal
+    output [31:0] Addr_out,   // ALU output
+    output [31:0] Data_out,   // data to data memory
+    output [2:0] DMType,      // read/write data length
+    input [31:0]  Data_in     // data from data memory
 );
+/*
+module SCPU(
+    input clk,
+        input reset,
+        input MIO_ready,
+                        
+        input [31:0]inst_in,
+        input [31:0]Data_in,	
+                        
+        output mem_w,
+        output[31:0]PC_out,
+        output[31:0]Addr_out,
+        output[31:0]Data_out, 
+        output CPU_MIO,
+        input INT
+    );			  
+endmodule
+*/
 
     wire        RegWrite;    // control signal to register write
     wire [5:0]  EXTOp;       // control signal to signed extension
@@ -58,12 +74,7 @@ module SCPU(
 	wire [31:0] immout;
     wire [31:0] aluout;
 
-    wire [31:0] Data_out;
-    wire [31:0] Data_in;
-
-    wire [2:0] DMType;
-
-    assign Addr_out = aluout;
+    assign Addr_out=aluout;
 	assign ALU_B = (ALUSrc) ? immout : RD2;
 	assign Data_out = RD2;
 	
@@ -111,18 +122,6 @@ module SCPU(
 	);
     // instantiation of alu unit
 	alu U_alu(.A(RD1), .B(ALU_B), .ALUOp(ALUOp), .C(aluout), .Zero(Zero), .PC(PC_out));
-
-    DM_ctrl U_DM_ctrl(
-        .dm_Data_out(dm_Data_out),
-        .Data_out(Data_out),
-        .dm_Data_in(dm_Data_in),
-        .Data_in(Data_in),
-
-        .mem_w(mem_w),
-        .DMType(DMType),
-        .pos(Addr_out[1:0]),
-        .wea(wea)
-    );
 
     //please connnect the CPU by yourself
     always @*

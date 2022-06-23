@@ -12,7 +12,7 @@ def compare(code1, code2) :
     run(code2)
     os.system('fc output_{}.txt output_{}.txt'.format(code1, code2))
 
-code1 = 'pipelined_processor'
+code1 = 'single_cycle_processor_bak'
 code2 = 'single_cycle_processor'
 
 compare(code1, code2)
