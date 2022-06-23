@@ -52,7 +52,7 @@ module sccomp_tb();
       // $fdisplay(foutput, "rf28-31:\t %h %h %h %h", U_SCCOMP.U_SCPU.U_RF.rf[28], U_SCCOMP.U_SCPU.U_RF.rf[29], U_SCCOMP.U_SCPU.U_RF.rf[30], U_SCCOMP.U_SCPU.U_RF.rf[31]);
       
       $display("");
-      $display("pc: %h", U_SCCOMP.PC>>2);
+      $display("pc: %h", U_SCCOMP.PC);
       $display("instr: %h", U_SCCOMP.U_SCPU.inst_in);
 
       if ((counter == 1000) || (U_SCCOMP.U_SCPU.PC_out=== 32'hxxxxxxxx)) begin

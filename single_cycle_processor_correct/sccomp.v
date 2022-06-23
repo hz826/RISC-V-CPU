@@ -1,7 +1,3 @@
-`include "SCPU.v"
-`include "dm.v"
-`include "im.v"
-
 module sccomp(clk, rstn, reg_sel, reg_data);
    input          clk;
    input          rstn;
@@ -38,7 +34,7 @@ module sccomp(clk, rstn, reg_sel, reg_data);
   // instantiation of data memory  
    dm    U_DM(
          .clk(clk),            // input:  cpu clock
-         .addr(dm_addr[9:0]), // input:  ram address
+         .addr(dm_addr[11:2]), // input:  ram address
          .wea(wea),            // input:  ram write
          .din(dm_din),         // input:  data to ram
          .dout(dm_dout)        // output: data from ram
