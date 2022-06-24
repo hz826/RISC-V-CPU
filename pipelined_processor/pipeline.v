@@ -1,6 +1,7 @@
 `include "ctrl.v"
 `include "EXT.v"
 `include "ALU.v"
+`include "DM_ctrl.v"
 
 module IF(
     input             clk,

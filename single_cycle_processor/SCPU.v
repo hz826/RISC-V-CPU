@@ -21,8 +21,8 @@ module SCPU(
     output        mem_w,        // output: memory write signal
     output [3:0]  wea,          // write enable bit
     output [31:0] Addr_out,     // ALU output
-    output [31:0] dm_Data_out,  // data to data memory
-    input  [31:0] dm_Data_in    // data from data memory
+    output [31:0] Data_out,     // data to data memory
+    input  [31:0] Data_in       // data from data memory
 );
 
     wire        RegWrite;    // control signal to register write
@@ -58,14 +58,16 @@ module SCPU(
 	wire [31:0] immout;
     wire [31:0] aluout;
 
-    wire [31:0] Data_out;
-    wire [31:0] Data_in;
+    wire [31:0] raw_Data_out;
+    wire [31:0] real_Data_in;
 
     wire [2:0] DMType;
 
-    assign Addr_out = aluout;
+    assign Addr_out = {2'b00, aluout[31:2]};
+    // assign Addr_out = {aluout[31:2], 2'b00};
+
 	assign ALU_B = (ALUSrc) ? immout : RD2;
-	assign Data_out = RD2;
+	assign raw_Data_out = RD2;
 	
     /*** 指令处理 ***/
 	assign iimm_shamt=inst_in[24:20];
@@ -113,14 +115,14 @@ module SCPU(
 	alu U_alu(.A(RD1), .B(ALU_B), .ALUOp(ALUOp), .C(aluout), .Zero(Zero), .PC(PC_out));
 
     DM_ctrl U_DM_ctrl(
-        .dm_Data_out(dm_Data_out),
-        .Data_out(Data_out),
-        .dm_Data_in(dm_Data_in),
-        .Data_in(Data_in),
+        .raw_Data_out(raw_Data_out),
+        .dm_Data_out(Data_out),
+        .dm_Data_in(Data_in),
+        .real_Data_in(real_Data_in),
 
         .mem_w(mem_w),
         .DMType(DMType),
-        .pos(Addr_out[1:0]),
+        .pos(aluout[1:0]),
         .wea(wea)
     );
 
@@ -129,7 +131,7 @@ module SCPU(
     begin
         case(WDSel)
             `WDSel_FromALU: WD<=aluout;
-            `WDSel_FromMEM: WD<=Data_in;
+            `WDSel_FromMEM: WD<=real_Data_in;
             `WDSel_FromPC: WD<=PC_out+4;
         endcase
     end

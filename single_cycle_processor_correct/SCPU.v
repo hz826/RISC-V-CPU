@@ -9,16 +9,16 @@ module SCPU(
     input wire clk,
     input wire reset,
     input wire MIO_ready, // Not used
-    input wire [31:0] inst_in, //Ö¸ÁîÊäÈë×ÜÏß
-    input wire [31:0]Data_in, //Êý¾ÝÊäÈë×ÜÏß
-    //input wire data_ram_we, //Ð´Êý¾Ý¿ØÖÆ
-    output wire mem_w, //´æ´¢Æ÷¶ÁÐ´¿ØÖÆ
-    output wire[31:0]PC_out, //³ÌÐò¿Õ¼ä·ÃÎÊÖ¸Õë
-    output wire[31:0]Addr_out, //Êý¾Ý¿Õ¼ä·ÃÎÊµØÖ·
-    output wire[31:0]Data_out, //Êý¾ÝÊä³ö×ÜÏß
+    input wire [31:0] inst_in, //Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input wire [31:0]Data_in, //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    //input wire data_ram_we, //Ð´ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½
+    output wire mem_w, //ï¿½æ´¢ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½
+    output wire[31:0]PC_out, //ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+    output wire[31:0]Addr_out, //ï¿½ï¿½ï¿½Ý¿Õ¼ï¿½ï¿½ï¿½Êµï¿½Ö·
+    output wire[31:0]Data_out, //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     output wire CPU_MIO, // Not used 
     output[3:0] wea,
-    input wire INT //ÖÐ¶Ï
+    input wire INT //ï¿½Ð¶ï¿½
 );
     wire        RegWrite;    // control signal to register write
     wire [5:0]       EXTOp;       // control signal to signed extension
@@ -54,7 +54,10 @@ module SCPU(
 	wire [19:0] uimm,jimm;
 	wire [31:0] immout;
     wire[31:0] aluout;
-    assign Addr_out=aluout;
+
+    assign Addr_out = {2'b00, aluout[31:2]};
+    // assign Addr_out = {aluout[31:2], 2'b00};
+
 	assign B = (ALUSrc) ? immout : RD2;
     wire [31: 0 ]Data_ori;
 	assign Data_ori = RD2;
@@ -113,7 +116,7 @@ begin
 end*/
 reg [31:0] intmp;
 wire [1:0] tmp;
-assign tmp = (Addr_out[1:0]&({2'b11}));
+assign tmp = (aluout[1:0]&({2'b11}));
 //display("Addr_out = 0x%x, tmp = 0x%x",addr,tmp);
 
 always @*

@@ -1,3 +1,7 @@
+`include "SCPU.v"
+`include "dm.v"
+`include "im.v"
+
 module sccomp(clk, rstn, reg_sel, reg_data);
    input          clk;
    input          rstn;
@@ -24,8 +28,8 @@ module sccomp(clk, rstn, reg_sel, reg_data);
          .mem_w(MemWrite),          // output: memory write signal
          .wea(wea),
          .Addr_out(dm_addr),        // output: address from cpu to memory
-         .dm_Data_in(dm_dout),      // input:  data to cpu 
-         .dm_Data_out(dm_din)       // output: data from cpu to memory
+         .Data_in(dm_dout),      // input:  data to cpu 
+         .Data_out(dm_din)       // output: data from cpu to memory
       //    .reg_sel(reg_sel),         // input:  register selection
       //    .reg_data(reg_data),       // output: register data
       //    .DMType(DMType)
@@ -34,7 +38,7 @@ module sccomp(clk, rstn, reg_sel, reg_data);
   // instantiation of data memory  
    dm    U_DM(
          .clk(clk),            // input:  cpu clock
-         .addr(dm_addr[11:2]), // input:  ram address
+         .addr(dm_addr[9:0]), // input:  ram address
          .wea(wea),            // input:  ram write
          .din(dm_din),         // input:  data to ram
          .dout(dm_dout)        // output: data from ram
@@ -42,7 +46,7 @@ module sccomp(clk, rstn, reg_sel, reg_data);
          
   // instantiation of intruction memory (used for simulation)
    im    U_IM ( 
-      .addr(PC[8:2]),     // input:  rom address
+      .addr(PC[11:2]),     // input:  rom address
       .dout(instr)        // output: instruction
    );
         

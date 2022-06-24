@@ -16,7 +16,12 @@ module sccomp_tb();
   	integer counter = 0;
    
    initial begin
-      $readmemh("../tests/test.dat" , U_SCCOMP.U_IM.ROM); // load instructions into instruction memory
+      $dumpfile("wave.vcd");
+      $dumpvars(0, U_SCCOMP.U_SCPU);
+      
+      $readmemh("test.dat" , U_SCCOMP.U_IM.ROM); // load instructions into instruction memory
+      $readmemh("test.mem" , U_SCCOMP.U_DM.dmem);
+
 //    $monitor("PC = 0x%8X, instr = 0x%8X", U_SCCOMP.PC, U_SCCOMP.instr); // used for debug
       // foutput = $fopen("results.txt");
       clk = 1;
@@ -50,6 +55,7 @@ module sccomp_tb();
       
       $display("");
       $display("pc: %h", U_SCCOMP.PC);
+      $display("pcid: %d", U_SCCOMP.PC >> 2);
       $display("instr: %h", U_SCCOMP.U_SCPU.inst_in);
 
       if ((counter == 1000) || (U_SCCOMP.U_SCPU.PC_out=== 32'hxxxxxxxx)) begin
@@ -57,7 +63,7 @@ module sccomp_tb();
           $stop;
       end
       else begin
-        if (U_SCCOMP.PC == 32'hf0000100) begin
+        if (U_SCCOMP.PC == 32'hf0000000) begin
           // $fclose(foutput);
           $stop;
         end
