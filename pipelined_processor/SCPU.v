@@ -3,25 +3,28 @@
 `include "pipeline.v"
 
 module SCPU(
-    input      clk,           // clock
-    input      reset,         // reset
-    input  [4:0]  reg_sel,    // register selection     (for debug use)
-    output [31:0] reg_data,   // selected register data (for debug use)
+    input         clk,          // clock
+    input         reset,        // reset
+    input         INT,          // not used
+    input         MIO_ready,    // not used
+    output        CPU_MIO,      // not used
+    input  [4:0]  reg_sel,      // register selection     (for debug use)
+    output [31:0] reg_data,     // selected register data (for debug use)
 
     // IM
-    output [31:0] PC_out,     // PC address
-    input  [31:0] inst_in,    // instruction
+    output [31:0] PC_out,       // PC address
+    input  [31:0] inst_in,      // instruction
    
-   // DM
-    output        mem_w,      // output: memory write signal
-    output [31:0] Addr_out,   // read/write address
-    output [31:0] Data_out,   // data to data memory
-    output [2:0]  DMType,     // read/write data length
-    input  [31:0] Data_in     // data from data memory
+    // DM
+    output        mem_w,        // output: memory write signal
+    output [3:0]  wea,          // write enable bit
+    output [31:0] Addr_out,     // ALU output
+    output [31:0] Data_out,     // data to data memory
+    input  [31:0] Data_in       // data from data memory
 );
-
     wire [31:0] PC;
     wire [2:0]  PCOP;
+    wire stall;
 
     wire [31:0] IF_ID_PC;
     wire [31:0] IF_ID_inst;
@@ -43,18 +46,21 @@ module SCPU(
     wire        ID_EX_RegWrite;
     wire [4:0]  ID_EX_rd;
     wire [1:0]  ID_EX_WDSel;
+    wire [6:0]  ID_EX_type;
 
     wire [31:0] EX_MEM_PC;
     wire [31:0] EX_MEM_immout;
     wire [2:0]  EX_MEM_NPCOp;
     wire        EX_MEM_MemWrite;
     wire [2:0]  EX_MEM_DMType;
+    wire [3:0]  EX_MEM_wea;
     wire [31:0] EX_MEM_DataWrite;
     wire [31:0] EX_MEM_aluout;
     wire        EX_MEM_RegWrite;
     wire [4:0]  EX_MEM_rd;
     wire [1:0]  EX_MEM_WDSel;
     wire [31:0] EX_MEM_WD;
+    wire [6:0]  EX_MEM_type;
 
     wire [31:0] MEM_NPC;         // next PC
 
@@ -63,7 +69,7 @@ module SCPU(
     wire [31:0] MEM_WB_WD;
 
     // assign PCOP = (EX_MEM_NPCOp == `NPC_PLUS4) ? `PC_PLUS4 : `PC_JUMP;
-    assign PCOP = `PC_PLUS4;
+    assign PCOP = (stall === 1) ? `PC_STALL : `PC_PLUS4;
     // IF
     PC U_PC(
         .clk(clk), .rst(reset), 
@@ -75,6 +81,7 @@ module SCPU(
 
     IF U_IF(
         .clk(clk), 
+        .stall(stall),
         // input
         .PC_in(PC),
         .inst_in(inst_in),
@@ -100,6 +107,15 @@ module SCPU(
 
         // ID -> RF -> ID
         .RD1(RD1), .RD2(RD2), .rs1(rs1), .rs2(rs2),
+
+        // stall
+        .ID_EX_rd(ID_EX_rd),
+        .EX_MEM_rd(EX_MEM_rd),
+        .ID_EX_RegWrite(ID_EX_RegWrite),
+        .EX_MEM_RegWrite(EX_MEM_RegWrite),
+        .ID_EX_type(ID_EX_type),
+        .EX_MEM_type(EX_MEM_type),
+        .stall(stall),
 
         // ID_EX
         .ALU_A(ID_EX_ALU_A),
@@ -128,7 +144,7 @@ module SCPU(
         .NPCOp_in(ID_EX_NPCOp),
         .MemWrite_in(ID_EX_MemWrite),
         .DMType_in(ID_EX_DMType),
-        .DataWrite_in(ID_EX_DataWrite),
+        .raw_Data_out(ID_EX_DataWrite),
         .RegWrite_in(ID_EX_RegWrite),
         .rd_in(ID_EX_rd),
         .WDSel_in(ID_EX_WDSel),
@@ -139,7 +155,8 @@ module SCPU(
         .NPCOp(EX_MEM_NPCOp),
         .MemWrite(EX_MEM_MemWrite),
         .DMType(EX_MEM_DMType),
-        .DataWrite(EX_MEM_DataWrite),
+        .wea(EX_MEM_wea),
+        .dm_Data_out(EX_MEM_DataWrite),
         .aluout(EX_MEM_aluout),
         .RegWrite(EX_MEM_RegWrite),
         .rd(EX_MEM_rd),
@@ -159,13 +176,19 @@ module SCPU(
 
     // DM
     assign mem_w     = EX_MEM_MemWrite;
-    assign Addr_out  = EX_MEM_aluout;
+    // assign Addr_out  = EX_MEM_aluout;
+    // assign Addr_out  = {EX_MEM_aluout[31:2], 2'b00};
+    assign Addr_out  = {2'b00, EX_MEM_aluout[31:2]};
+    assign wea       = EX_MEM_wea;
     assign Data_out  = EX_MEM_DataWrite;
     assign DMType    = EX_MEM_DMType;
     
     MEM U_MEM(
         .clk(clk), 
-        .Data_in(Data_in),
+        .raw_Data_in(Data_in),
+        .DMType(EX_MEM_DMType),
+        .bias(EX_MEM_aluout[1:0]),
+
         .RegWrite_in(EX_MEM_RegWrite),
         .rd_in(EX_MEM_rd),
         .WDSel_in(EX_MEM_WDSel),
