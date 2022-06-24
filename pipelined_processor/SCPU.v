@@ -81,6 +81,7 @@ module SCPU(
 
     IF U_IF(
         .clk(clk), 
+        .rst(reset),
         .stall(stall),
         // input
         .PC_in(PC),
@@ -102,6 +103,7 @@ module SCPU(
 
     ID U_ID(
         .clk(clk), 
+        .rst(reset),
         // IF_ID
         .PC_in(IF_ID_PC), .inst_in(IF_ID_inst),
 
@@ -135,6 +137,7 @@ module SCPU(
     //  EX                                                                                      
     EX U_EX(
         .clk(clk), 
+        .rst(reset),
         // ID_EX
         .ALU_A(ID_EX_ALU_A),
         .ALU_B(ID_EX_ALU_B),
@@ -185,6 +188,7 @@ module SCPU(
     
     MEM U_MEM(
         .clk(clk), 
+        .rst(reset),
         .raw_Data_in(Data_in),
         .DMType(EX_MEM_DMType),
         .bias(EX_MEM_aluout[1:0]),

@@ -4,6 +4,7 @@
 
 module IF(
     input             clk,
+    input             rst,
     inout             stall,
     input      [31:0] PC_in,
     input      [31:0] inst_in,
@@ -12,16 +13,23 @@ module IF(
     output reg [31:0] inst_out
 );
 
-    always @(posedge clk) begin
-        if (!(stall === 1'b1)) begin
-            PC_out <= PC_in;
-            inst_out <= inst_in;
+    always @(posedge clk, posedge rst) begin
+        if (rst) begin
+            PC_out <= 32'b0;
+            inst_out <= 32'h00000013; //nop
+        end
+        else begin
+            if (!(stall === 1'b1)) begin
+                PC_out <= PC_in;
+                inst_out <= inst_in;
+            end
         end
     end
 endmodule
 
 module ID(
     input         clk,
+    input         rst,
     input  [31:0] PC_in,
     input  [31:0] inst_in,     // instruction
     input  [31:0] RD1,         // read register value
@@ -127,28 +135,49 @@ module ID(
 
     /*********************** after reading registers ************************/
 
-    always @(posedge clk) begin
-        ALU_A <= RD1;
-        ALU_B <= (ALUSrc) ? immout_w : RD2;
-        ALUOp <= ALUOp_w;
+    always @(posedge clk, posedge rst) begin
+        if (rst) begin
+            ALU_A <= 32'b0;
+            ALU_B <= 32'b0;
+            ALUOp <= 5'b0;
 
-        PC <= PC_in;
-        immout <= immout_w;
-        NPCOp <= NPCOp_w;
+            PC <= 32'b0;
+            immout <= 32'b0;
+            NPCOp <= 3'b0;
 
-        MemWrite <= (stall === 1'b1) ? 1'b0 : MemWrite_w;
-        DMType <= DMType_w;
-        DataWrite <= RD2;
+            MemWrite <= 1'b0;
+            DMType <= 3'b0;
+            DataWrite <= 32'b0;
 
-        RegWrite <= (stall === 1'b1) ? 1'b0 : RegWrite_w;
-        rd <= rd_w;
-        WDSel <= WDSel_w;
-        type <= type_w;
+            RegWrite <= 1'b0;
+            rd <= 5'b0;
+            WDSel <= 2'b0;
+            type <= 7'b0;
+        end
+        else begin
+            ALU_A <= RD1;
+            ALU_B <= (ALUSrc) ? immout_w : RD2;
+            ALUOp <= ALUOp_w;
+
+            PC <= PC_in;
+            immout <= immout_w;
+            NPCOp <= NPCOp_w;
+
+            MemWrite <= (stall === 1'b1) ? 1'b0 : MemWrite_w;
+            DMType <= DMType_w;
+            DataWrite <= RD2;
+
+            RegWrite <= (stall === 1'b1) ? 1'b0 : RegWrite_w;
+            rd <= rd_w;
+            WDSel <= WDSel_w;
+            type <= type_w;
+        end
     end
 endmodule
 
 module EX(
     input         clk,
+    input         rst,
     // to EX
     input  [31:0] ALU_A,       // operator for ALU A
     input  [31:0] ALU_B,       // operator for ALU B
@@ -170,6 +199,8 @@ module EX(
     input  [6:0]  type_in,
 
     /**********************************************/
+
+    output flush,
 
     // to MEM
     output reg [31:0] PC,
@@ -235,29 +266,49 @@ module EX(
 
     /************************** after calculating **************************/
 
-    always @(posedge clk) begin
-        PC <= PC_in;
-        immout <= immout_in;
-        NPCOp[0] <= NPCOp_in[0] & Zero;
-        NPCOp[1] <= NPCOp_in[1];
-        NPCOp[2] <= NPCOp_in[2];
+    always @(posedge clk, posedge rst) begin
+        if (rst) begin
+            PC <= 32'b0;
+            immout <= 32'b0;
+            NPCOp <= 3'b0;
 
-        MemWrite <= MemWrite_in;
-        DMType <= DMType_in;
-        dm_Data_out <= dm_Data_out_w;
-        wea <= wea_tmp;
-        aluout <= aluout_w;
+            MemWrite <= 1'b0;
+            DMType <= 3'b0;
+            dm_Data_out <= 32'b0;
+            wea <= 4'b0;
+            aluout <= 32'b0;
 
-        RegWrite <= RegWrite_in;
-        rd <= rd_in;
-        WDSel <= WDSel_in;
-        WD <= WD_w;
-        type <= type_in;
+            RegWrite <= 1'b0;
+            rd <= 5'b0;
+            WDSel <= 2'b0;
+            WD <= 32'b0;
+            type <= 7'b0;
+        end
+        else begin
+            PC <= PC_in;
+            immout <= immout_in;
+            NPCOp[0] <= NPCOp_in[0] & Zero;
+            NPCOp[1] <= NPCOp_in[1];
+            NPCOp[2] <= NPCOp_in[2];
+
+            MemWrite <= MemWrite_in;
+            DMType <= DMType_in;
+            dm_Data_out <= dm_Data_out_w;
+            wea <= wea_tmp;
+            aluout <= aluout_w;
+
+            RegWrite <= RegWrite_in;
+            rd <= rd_in;
+            WDSel <= WDSel_in;
+            WD <= WD_w;
+            type <= type_in;
+        end
     end
 endmodule
 
 module MEM(
     input         clk,
+    input         rst,
     // MEM -> DM -> MEM
     input  [31:0] raw_Data_in, // data from data memory
     input  [2:0]  DMType,
