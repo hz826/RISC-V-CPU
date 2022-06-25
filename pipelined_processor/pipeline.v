@@ -5,7 +5,8 @@
 module IF(
     input             clk,
     input             rst,
-    inout             stall,
+    input             stall,
+    input             flush,
     input      [31:0] PC_in,
     input      [31:0] inst_in,
     
@@ -14,9 +15,9 @@ module IF(
 );
 
     always @(posedge clk, posedge rst) begin
-        if (rst) begin
+        if (rst || flush) begin
             PC_out <= 32'b0;
-            inst_out <= 32'h00000013; //nop
+            inst_out <= 32'b0;
         end
         else begin
             if (!(stall === 1'b1)) begin
@@ -34,6 +35,7 @@ module ID(
     input  [31:0] inst_in,     // instruction
     input  [31:0] RD1,         // read register value
     input  [31:0] RD2,         // read register value
+    input         flush,
 
     // stall
     input        ID_EX_RegWrite,
@@ -43,6 +45,11 @@ module ID(
     input  [4:0] EX_MEM_rd,
     input  [6:0] EX_MEM_type,
     output       stall,
+
+    // forwarding
+    input  [1:0]  ID_EX_WDSel,
+    input  [31:0] EX_WD_f,
+    input  [31:0] MEM_WD_f,
 
     // to RF (ID -> RF -> ID)
     output [4:0]  rs1,         // read register id
@@ -93,6 +100,9 @@ module ID(
     wire [1:0]  WDSel_w;
     wire [31:0] immout_w;
     wire [6:0]  type_w;
+    wire        use_rs1, use_rs2;
+
+    wire [31:0] RD1_f, RD2_f; // forwarding
 
     /************************ processing instruction ************************/
     assign iimm_shamt=inst_in[24:20];
@@ -119,7 +129,7 @@ module ID(
         .RegWrite(RegWrite_w), .MemWrite(MemWrite_w),
         .EXTOp(EXTOp), .ALUOp(ALUOp_w), .NPCOp(NPCOp_w), 
         .ALUSrc(ALUSrc), .GPRSel(GPRSel), .WDSel(WDSel_w), .DMType(DMType_w),
-        .type(type_w)
+        .type(type_w), .use_rs1(use_rs1), .use_rs2(use_rs2)
     );
 
     EXT U_EXT(
@@ -128,15 +138,33 @@ module ID(
         .EXTOp(EXTOp), .immout(immout_w)
     );
 
-    // wire dh11 = ID_EX_RegWrite & (ID_EX_rd === rs1);
-    assign stall = (ID_EX_RegWrite & (ID_EX_rd === rs1 || ID_EX_rd === rs2))
-                | (EX_MEM_RegWrite & (EX_MEM_rd === rs1 || EX_MEM_rd === rs2));
+    wire dh11 =          ID_EX_RegWrite  & use_rs1 & (ID_EX_rd  == rs1) & (rs1 != 5'b0);
+    wire dh12 =          ID_EX_RegWrite  & use_rs2 & (ID_EX_rd  == rs2) & (rs2 != 5'b0);
+    wire dh21 = !dh11 && EX_MEM_RegWrite & use_rs1 & (EX_MEM_rd == rs1) & (rs1 != 5'b0);
+    wire dh22 = !dh12 && EX_MEM_RegWrite & use_rs2 & (EX_MEM_rd == rs2) & (rs2 != 5'b0);
+
+    wire fw11 = dh11 & (~ID_EX_WDSel[0]);
+    wire fw12 = dh12 & (~ID_EX_WDSel[0]);
+    wire fw21 = dh21;
+    wire fw22 = dh22;
+
+    // ver 0
     // assign stall = 1'b0;
+
+    // ver 1
+    // assign stall = (~flush) & (dh11 | dh12 | dh21 | dh22);
+    // assign RD1_f = RD1;
+    // assign RD2_f = RD2;
+
+    // ver 2
+    assign stall =  (~flush) & ((dh11 & ~fw11) | (dh12 & ~fw12));
+    assign RD1_f = fw11 ? EX_WD_f : (fw21 ? MEM_WD_f : RD1);
+    assign RD2_f = fw12 ? EX_WD_f : (fw22 ? MEM_WD_f : RD2);
 
     /*********************** after reading registers ************************/
 
     always @(posedge clk, posedge rst) begin
-        if (rst) begin
+        if (rst || flush) begin
             ALU_A <= 32'b0;
             ALU_B <= 32'b0;
             ALUOp <= 5'b0;
@@ -155,17 +183,17 @@ module ID(
             type <= 7'b0;
         end
         else begin
-            ALU_A <= RD1;
-            ALU_B <= (ALUSrc) ? immout_w : RD2;
+            ALU_A <= RD1_f;
+            ALU_B <= (ALUSrc) ? immout_w : RD2_f;
             ALUOp <= ALUOp_w;
 
             PC <= PC_in;
             immout <= immout_w;
-            NPCOp <= NPCOp_w;
+            NPCOp <= (stall === 1'b1) ? 3'b0 : NPCOp_w;
 
             MemWrite <= (stall === 1'b1) ? 1'b0 : MemWrite_w;
             DMType <= DMType_w;
-            DataWrite <= RD2;
+            DataWrite <= RD2_f;
 
             RegWrite <= (stall === 1'b1) ? 1'b0 : RegWrite_w;
             rd <= rd_w;
@@ -199,8 +227,8 @@ module EX(
     input  [6:0]  type_in,
 
     /**********************************************/
-
-    output flush,
+    output reg flush,
+    output [31:0] EX_WD_f,
 
     // to MEM
     output reg [31:0] PC,
@@ -232,42 +260,78 @@ module EX(
     alu U_alu(.A(ALU_A), .B(ALU_B), .PC(PC), .ALUOp(ALUOp), .C(aluout_w), .Zero(Zero));
     
     assign WD_w = (WDSel_in == `WDSel_FromPC) ? PC_in+4 : aluout_w;
+    assign EX_WD_f = WD_w;
 
     wire [2:0] bias;
     assign bias = aluout_w[1:0];
 
-    reg [3:0]  wea_tmp;
+    reg [3:0]  wea_tmp1;
+    reg [3:0]  wea_tmp2;
     reg [31:0] dm_Data_out_w;
 
-    always @(*) begin
-        dm_Data_out_w <= (raw_Data_out << (bias << 3));
+    wire flush_w = (NPCOp_in[0] & Zero) | NPCOp_in[1] | NPCOp_in[2];
 
+    always @(*) begin
         if (MemWrite_in) begin
-            case (DMType)
+            case (DMType_in)
                 `dm_word: begin
-                    wea_tmp <= (4'b1111 << bias);
+                    wea_tmp1 <= 4'b1111;
                 end
                 
                 `dm_halfword: begin
-                    wea_tmp <= (4'b0011 << bias);
+                    wea_tmp1 <= 4'b0011;
                 end
 
                 `dm_byte: begin
-                    wea_tmp <= (4'b0001 << bias);
+                    wea_tmp1 <= 4'b0001;
                 end
 
-                default wea_tmp <= 4'b0000;
+                default wea_tmp1 <= 4'b0000;
             endcase
         end
         else begin
-            wea_tmp <= 4'b0000;
+            wea_tmp1 <= 4'b0000;
         end
+    end
+
+    always @(*) begin
+        case (bias)
+            2'b00: begin
+                dm_Data_out_w <= raw_Data_out;
+            end
+            2'b01: begin
+                dm_Data_out_w <= {raw_Data_out[23:0], 8'b0};
+            end
+            2'b10: begin
+                dm_Data_out_w <= {raw_Data_out[15:0], 16'b0};
+            end
+            2'b11: begin
+                dm_Data_out_w <= {raw_Data_out[7:0], 24'b0};
+            end
+        endcase
+    end
+
+    always @(*) begin
+        case (bias)
+            2'b00: begin
+                wea_tmp2 <= wea_tmp1;
+            end
+            2'b01: begin
+                wea_tmp2 <= {wea_tmp1[2:0], 1'b0};
+            end
+            2'b10: begin
+                wea_tmp2 <= {wea_tmp1[1:0], 2'b0};
+            end
+            2'b11: begin
+                wea_tmp2 <= {wea_tmp1[0:0], 3'b0};
+            end
+        endcase
     end
 
     /************************** after calculating **************************/
 
     always @(posedge clk, posedge rst) begin
-        if (rst) begin
+        if (rst || flush) begin
             PC <= 32'b0;
             immout <= 32'b0;
             NPCOp <= 3'b0;
@@ -283,6 +347,7 @@ module EX(
             WDSel <= 2'b0;
             WD <= 32'b0;
             type <= 7'b0;
+            flush <= 1'b0;
         end
         else begin
             PC <= PC_in;
@@ -294,7 +359,7 @@ module EX(
             MemWrite <= MemWrite_in;
             DMType <= DMType_in;
             dm_Data_out <= dm_Data_out_w;
-            wea <= wea_tmp;
+            wea <= wea_tmp2;
             aluout <= aluout_w;
 
             RegWrite <= RegWrite_in;
@@ -302,6 +367,7 @@ module EX(
             WDSel <= WDSel_in;
             WD <= WD_w;
             type <= type_in;
+            flush <= flush_w;
         end
     end
 endmodule
@@ -321,6 +387,8 @@ module MEM(
     input  [31:0] WD_in,       // register write data
 
     /**********************************************/
+    
+    output [31:0] MEM_WD_f,
 
     // to WB
     output reg        RegWrite,    // control signal to register write
@@ -330,12 +398,27 @@ module MEM(
 
     /**************************** DM read/write ****************************/
 
+    assign MEM_WD_f = WD_w;
+
     reg [31:0] dtmp;
     reg [31:0] WD_w;
     reg [31:0] Data_in;
 
     always @(*) begin
-        dtmp <= (raw_Data_in >> (bias << 3));
+        case (bias)
+            2'b00: begin
+                dtmp <= raw_Data_in;
+            end
+            2'b01: begin
+                dtmp <= {8'b0, raw_Data_in[31:8]};
+            end
+            2'b10: begin
+                dtmp <= {16'b0, raw_Data_in[31:16]};
+            end
+            2'b11: begin
+                dtmp <= {24'b0, raw_Data_in[31:24]};
+            end
+        endcase
 
         case (DMType)
             `dm_word: begin

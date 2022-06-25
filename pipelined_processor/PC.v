@@ -20,7 +20,8 @@ endmodule
 module PC(
     input              clk,
     input              rst,
-    input       [2:0]  PCOP,
+    input              stall,
+    input       [2:0]  NPCOP,
     input       [31:0] NPC,
     output reg  [31:0] PC
 );
@@ -31,11 +32,9 @@ module PC(
     always @(posedge clk, posedge rst)
         if (rst)
             PC <= 32'h0000_0000;  //      PC <= 32'h0000_3000;
-        else
-            case (PCOP)
-                `PC_STALL: PC <= PC;
-                `PC_PLUS4: PC <= PCPLUS4;
-                `PC_JUMP : PC <= NPC;
-                default:   PC <= 32'hcccccccc; // for debug
-            endcase
+        else begin
+            if (stall == 1) PC <= PC;
+            else if (NPCOP != 3'b000) PC <= NPC;
+            else PC <= PCPLUS4;
+        end
 endmodule

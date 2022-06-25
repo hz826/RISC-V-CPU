@@ -18,9 +18,11 @@ module sccomp_tb();
    initial begin
       $dumpfile("wave.vcd");
       $dumpvars(0, U_SCCOMP.U_SCPU);
-      
+      $dumpvars(0, U_SCCOMP.U_SCPU.U_RF.rf[3]);
+      $dumpvars(0, U_SCCOMP.U_SCPU.U_RF.rf[5]);
+
       $readmemh("test.dat" , U_SCCOMP.U_IM.ROM); // load instructions into instruction memory
-      $readmemh("test.mem" , U_SCCOMP.U_DM.dmem);
+      // $readmemh("test.mem" , U_SCCOMP.U_DM.dmem);
 
 //    $monitor("PC = 0x%8X, instr = 0x%8X", U_SCCOMP.PC, U_SCCOMP.instr); // used for debug
       foutput = $fopen("results.txt");
@@ -38,6 +40,7 @@ module sccomp_tb();
     #(50) clk = ~clk;
 	   
     if (clk == 1'b1) begin
+      $display("pc: %h  pcid: %d  instr: %h", U_SCCOMP.PC>>2, (U_SCCOMP.PC>>2)+1, U_SCCOMP.instr);
       $fdisplay(foutput, "pc: %h  instr: %h", U_SCCOMP.PC, U_SCCOMP.instr);
       // $fdisplay(foutput, "rf: %h", U_SCCOMP.U_SCPU.U_RF.rf[29]);
       // $fdisplay(foutput, "dm: %02X", U_SCCOMP.U_DM.dmem[0]);
@@ -63,7 +66,7 @@ module sccomp_tb();
           $stop;
       end
       else begin
-        if (U_SCCOMP.PC == 32'h00000800) begin
+        if (U_SCCOMP.PC == 32'hfffffffc) begin
           $fclose(foutput);
           $stop;
         end

@@ -31,7 +31,8 @@ def compare(code1, code2, test, tb) :
     rm('output_{}.txt'.format(code2))
     run(code1, tb)
     run(code2, tb)
-    os.system('fc output_{}.txt output_{}.txt'.format(code1, code2))
+
+    # os.system('fc output_{}.txt output_{}.txt'.format(code1, code2))
 
     rm('tb/test.dat')
     rm('tb/test.mem')
@@ -44,8 +45,6 @@ def te1(path) :
 
 def te2(path) :
     return (path+'.dat', 'tests/random.mem', path+'.asm')
-
-
 
 # code1 = 'single_cycle_processor_correct'
 code1 = 'pipelined_processor'

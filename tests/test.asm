@@ -1,6 +1,5 @@
-addi x5 x0 1
-addi x6 x0 2
-sh x5 0(x0)
-sh x6 2(x0)
-lw x7 0(x0)
-jalr x0 x0 0
+addi	x5, x0, 1
+add 	x5, x5, x5
+ori 	x6, x0, 2
+add	    x5, x5, x5
+jalr	x1, x0, -4

@@ -5,7 +5,7 @@ module ctrl(Op, Funct7, Funct3,
             RegWrite, MemWrite,
             EXTOp, ALUOp, NPCOp, 
             ALUSrc, GPRSel, WDSel,DMType,
-            type
+            type, use_rs1, use_rs2
           );
             
    input  [6:0] Op;       // opcode
@@ -22,6 +22,7 @@ module ctrl(Op, Funct7, Funct3,
    output [1:0] GPRSel;   // general purpose register selection （未被使用）
    output [1:0] WDSel;    // (register) write data selection
    output [6:0] type;
+   output       use_rs1, use_rs2;
    
   // r format
     wire rtype = ~Op[6]&Op[5]&Op[4]&~Op[3]&~Op[2]&Op[1]&Op[0]; //0110011
@@ -81,7 +82,9 @@ module ctrl(Op, Funct7, Funct3,
     wire i_lui  =~Op[6]& Op[5]& Op[4]&~Op[3]& Op[2]& Op[1]& Op[0]; //lui 0110111
     wire i_auipc=~Op[6]&~Op[5]& Op[4]&~Op[3]& Op[2]& Op[1]& Op[0]; //auipc 0010111
 
-    assign type = {rtype, itype_l, itype_r, i_jalr, stype, sbtype, i_jal};
+    assign type = {rtype, itype_l, itype_r, i_jalr, stype, sbtype, (i_jal | i_lui | i_auipc)};
+    assign use_rs1 = rtype | itype_l | itype_r | i_jalr | stype | sbtype;
+    assign use_rs2 = rtype | stype | sbtype;
 
   // generate control signals
     assign RegWrite   = rtype | itype_r | i_lui | i_auipc | i_jalr | i_jal | itype_l; // register write

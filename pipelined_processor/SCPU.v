@@ -25,6 +25,9 @@ module SCPU(
     wire [31:0] PC;
     wire [2:0]  PCOP;
     wire stall;
+    wire flush;
+    wire [31:0] EX_WD_f;
+    wire [31:0] MEM_WD_f;
 
     wire [31:0] IF_ID_PC;
     wire [31:0] IF_ID_inst;
@@ -69,12 +72,12 @@ module SCPU(
     wire [31:0] MEM_WB_WD;
 
     // assign PCOP = (EX_MEM_NPCOp == `NPC_PLUS4) ? `PC_PLUS4 : `PC_JUMP;
-    assign PCOP = (stall === 1) ? `PC_STALL : `PC_PLUS4;
     // IF
     PC U_PC(
         .clk(clk), .rst(reset), 
-        .PCOP(PCOP), .NPC(MEM_NPC), // input
-        .PC(PC)                             // output
+        .stall(stall),
+        .NPCOP(EX_MEM_NPCOp), .NPC(MEM_NPC), // input
+        .PC(PC)                              // output
     ); // PC = NPC when posedge clk
     assign PC_out = PC;
     // PC -> IM -> inst_in
@@ -83,6 +86,7 @@ module SCPU(
         .clk(clk), 
         .rst(reset),
         .stall(stall),
+        .flush(flush),
         // input
         .PC_in(PC),
         .inst_in(inst_in),
@@ -104,19 +108,23 @@ module SCPU(
     ID U_ID(
         .clk(clk), 
         .rst(reset),
+        .flush(flush),
         // IF_ID
         .PC_in(IF_ID_PC), .inst_in(IF_ID_inst),
 
         // ID -> RF -> ID
         .RD1(RD1), .RD2(RD2), .rs1(rs1), .rs2(rs2),
 
-        // stall
+        // stall & forwarding
         .ID_EX_rd(ID_EX_rd),
         .EX_MEM_rd(EX_MEM_rd),
         .ID_EX_RegWrite(ID_EX_RegWrite),
         .EX_MEM_RegWrite(EX_MEM_RegWrite),
         .ID_EX_type(ID_EX_type),
         .EX_MEM_type(EX_MEM_type),
+        .ID_EX_WDSel(ID_EX_WDSel),
+        .EX_WD_f(EX_WD_f),
+        .MEM_WD_f(MEM_WD_f),
         .stall(stall),
 
         // ID_EX
@@ -138,6 +146,9 @@ module SCPU(
     EX U_EX(
         .clk(clk), 
         .rst(reset),
+        .flush(flush),
+        .EX_WD_f(EX_WD_f),
+
         // ID_EX
         .ALU_A(ID_EX_ALU_A),
         .ALU_B(ID_EX_ALU_B),
@@ -181,7 +192,8 @@ module SCPU(
     assign mem_w     = EX_MEM_MemWrite;
     // assign Addr_out  = EX_MEM_aluout;
     // assign Addr_out  = {EX_MEM_aluout[31:2], 2'b00};
-    assign Addr_out  = {2'b00, EX_MEM_aluout[31:2]};
+    // assign Addr_out  = {2'b00, EX_MEM_aluout[31:2]};
+    assign Addr_out  = (mem_w || EX_MEM_WDSel == `WDSel_FromMEM) ? {2'b00, EX_MEM_aluout[31:2]} : 32'b0;
     assign wea       = EX_MEM_wea;
     assign Data_out  = EX_MEM_DataWrite;
     assign DMType    = EX_MEM_DMType;
@@ -189,6 +201,9 @@ module SCPU(
     MEM U_MEM(
         .clk(clk), 
         .rst(reset),
+
+        .MEM_WD_f(MEM_WD_f),
+
         .raw_Data_in(Data_in),
         .DMType(EX_MEM_DMType),
         .bias(EX_MEM_aluout[1:0]),
