@@ -190,10 +190,10 @@ module SCPU(
 
     // DM
     assign mem_w     = EX_MEM_MemWrite;
-    // assign Addr_out  = EX_MEM_aluout;
+    assign Addr_out  = EX_MEM_aluout;
     // assign Addr_out  = {EX_MEM_aluout[31:2], 2'b00};
     // assign Addr_out  = {2'b00, EX_MEM_aluout[31:2]};
-    assign Addr_out  = (mem_w || EX_MEM_WDSel == `WDSel_FromMEM) ? {2'b00, EX_MEM_aluout[31:2]} : 32'b0;
+    // assign Addr_out  = (mem_w || EX_MEM_WDSel == `WDSel_FromMEM) ? {2'b00, EX_MEM_aluout[31:2]} : 32'b0;
     assign wea       = EX_MEM_wea;
     assign Data_out  = EX_MEM_DataWrite;
     assign DMType    = EX_MEM_DMType;

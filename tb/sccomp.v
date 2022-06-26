@@ -37,11 +37,11 @@ module sccomp(clk, rstn, reg_sel, reg_data);
          
   // instantiation of data memory  
    dm    U_DM(
-         .clk(clk),            // input:  cpu clock
-         .addr(dm_addr[9:0]), // input:  ram address
+         .clka(clk),            // input:  cpu clock
+         .addra(dm_addr[9:0]), // input:  ram address
          .wea(wea),            // input:  ram write
-         .din(dm_din),         // input:  data to ram
-         .dout(dm_dout)        // output: data from ram
+         .dina(dm_din),         // input:  data to ram
+         .douta(dm_dout)        // output: data from ram
    );
          
   // instantiation of intruction memory (used for simulation)

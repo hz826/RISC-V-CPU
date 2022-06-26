@@ -295,37 +295,8 @@ module EX(
     end
 
     always @(*) begin
-        case (bias)
-            2'b00: begin
-                dm_Data_out_w <= raw_Data_out;
-            end
-            2'b01: begin
-                dm_Data_out_w <= {raw_Data_out[23:0], 8'b0};
-            end
-            2'b10: begin
-                dm_Data_out_w <= {raw_Data_out[15:0], 16'b0};
-            end
-            2'b11: begin
-                dm_Data_out_w <= {raw_Data_out[7:0], 24'b0};
-            end
-        endcase
-    end
-
-    always @(*) begin
-        case (bias)
-            2'b00: begin
-                wea_tmp2 <= wea_tmp1;
-            end
-            2'b01: begin
-                wea_tmp2 <= {wea_tmp1[2:0], 1'b0};
-            end
-            2'b10: begin
-                wea_tmp2 <= {wea_tmp1[1:0], 2'b0};
-            end
-            2'b11: begin
-                wea_tmp2 <= {wea_tmp1[0:0], 3'b0};
-            end
-        endcase
+        dm_Data_out_w <= raw_Data_out;
+        wea_tmp2 <= wea_tmp1;
     end
 
     /************************** after calculating **************************/
@@ -405,20 +376,7 @@ module MEM(
     reg [31:0] Data_in;
 
     always @(*) begin
-        case (bias)
-            2'b00: begin
-                dtmp <= raw_Data_in;
-            end
-            2'b01: begin
-                dtmp <= {8'b0, raw_Data_in[31:8]};
-            end
-            2'b10: begin
-                dtmp <= {16'b0, raw_Data_in[31:16]};
-            end
-            2'b11: begin
-                dtmp <= {24'b0, raw_Data_in[31:24]};
-            end
-        endcase
+        dtmp <= raw_Data_in;
 
         case (DMType)
             `dm_word: begin

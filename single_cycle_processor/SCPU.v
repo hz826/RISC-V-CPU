@@ -63,7 +63,8 @@ module SCPU(
 
     wire [2:0] DMType;
 
-    assign Addr_out = {2'b00, aluout[31:2]};
+    assign Addr_out = aluout;
+    // assign Addr_out = {2'b00, aluout[31:2]};
     // assign Addr_out = {aluout[31:2], 2'b00};
 
 	assign ALU_B = (ALUSrc) ? immout : RD2;

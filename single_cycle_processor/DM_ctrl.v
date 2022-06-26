@@ -39,6 +39,10 @@ module DM_ctrl(
     end
 
     always @(*) begin
+        wea <= wea_tmp;
+        dm_Data_out <= raw_Data_out;
+        dtmp <= dm_Data_in;
+        /*
         case (pos)
             2'b00 : begin
                 wea <= {wea_tmp[3:0]};
@@ -64,6 +68,7 @@ module DM_ctrl(
                 dtmp <= {24'b0,dm_Data_in[31:24]};
             end
         endcase
+        */
     end
 
     always @(*) begin

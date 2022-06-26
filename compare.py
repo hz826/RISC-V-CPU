@@ -32,13 +32,11 @@ def compare(code1, code2, test, tb) :
     run(code1, tb)
     run(code2, tb)
 
-    # os.system('fc output_{}.txt output_{}.txt'.format(code1, code2))
+    os.system('fc output_{}.txt output_{}.txt'.format(code1, code2))
 
     rm('tb/test.dat')
     rm('tb/test.mem')
     rm('tb/test.asm')
-
-
 
 def te1(path) :
     return (path+'.dat', path+'.mem', 'tests/empty.asm')
@@ -46,15 +44,19 @@ def te1(path) :
 def te2(path) :
     return (path+'.dat', 'tests/random.mem', path+'.asm')
 
-# code1 = 'single_cycle_processor_correct'
-code1 = 'pipelined_processor'
-# code1 = 'fyc_sc'
-code2 = 'single_cycle_processor'
+code = []
+# code.append('single_cycle_processor')
+code.append('pipelined_processor')
+# code.append('fyc_sc')
+# code.append('wjy_pl')
+# code.append('cyc_pl')
+# code.append('fyc_pl')
+code.append('wxz_pl')
 
 tb = ['dm.v', 'im.v', 'sccomp.v', 'sccomp_tb.v', 'test.dat', 'test.mem', 'test.asm', 'makefile']
 
 # test = te1('tests/coe_data/T2')
-test = te2('tests/test')
+test = te2('tests/test_qs')
 # test = ('tests/coe_data/T2.dat', 'tests/coe_data/T2.mem', 'tests/empty.asm')
 
-compare(code1, code2, test, tb)
+compare(code[0], code[1], test, tb)
