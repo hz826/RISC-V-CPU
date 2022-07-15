@@ -12,7 +12,6 @@ module NPC(                  // next pc module
             `NPC_BRANCH: NPC = PC+IMM;
             `NPC_JUMP:   NPC = PC+IMM;
             `NPC_JALR:   NPC = aluout;
-            default:     NPC = 32'hcccccccc; // for debug
         endcase
     end
 endmodule

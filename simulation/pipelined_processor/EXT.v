@@ -2,14 +2,14 @@
 
 module EXT( 
     input   [4:0]   iimm_shamt,
-    input   [11:0]    iimm, //instr[31:20], 12 bits
-    input   [11:0]    simm, //instr[31:25, 11:7], 12 bits
-    input   [11:0]    bimm, //instrD[31], instrD[7], instrD[30:25], instrD[11:8], 12 bits
-    input   [19:0]    uimm,
-    input   [19:0]    jimm,
-    input   [5:0]    EXTOp,
+    input   [11:0]  iimm, // instr[31:20], 12 bits
+    input   [11:0]  simm, // instr[31:25, 11:7], 12 bits
+    input   [11:0]  bimm, // instrD[31], instrD[7], instrD[30:25], instrD[11:8], 12 bits
+    input   [19:0]  uimm,
+    input   [19:0]  jimm,
+    input   [5:0]   EXTOp,
 
-    output reg [31:0] immout
+    output reg [31:0] immout // 从指令中提取立即数并扩展到32位
 );
 
 always  @(*)

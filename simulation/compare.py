@@ -38,25 +38,30 @@ def compare(code1, code2, test, tb) :
     rm('tb/test.mem')
     rm('tb/test.asm')
 
-def te1(path) :
-    return (path+'.dat', path+'.mem', 'tests/empty.asm')
+###########################################################################
 
-def te2(path) :
-    return (path+'.dat', 'tests/random.mem', path+'.asm')
-
+# 用于对拍的代码
 code = []
-# code.append('single_cycle_processor')
+code.append('single_cycle_processor')
 code.append('pipelined_processor')
 # code.append('fyc_sc')
 # code.append('wjy_pl')
 # code.append('cyc_pl')
 # code.append('fyc_pl')
-code.append('wxz_pl')
+# code.append('wxz_pl')
 
+# 对拍需要统一的文件
 tb = ['dm.v', 'im.v', 'sccomp.v', 'sccomp_tb.v', 'test.dat', 'test.mem', 'test.asm', 'makefile']
 
+# 测试数据
+def te1(path) :
+    return (path+'.dat', path+'.mem', 'tests/empty.asm')
+
+def te2(path) :
+    return (path+'.dat', 'tests/random.mem', path+'.asm')
 # test = te1('tests/coe_data/T2')
 test = te2('tests/test_qs')
 # test = ('tests/coe_data/T2.dat', 'tests/coe_data/T2.mem', 'tests/empty.asm')
 
+# 对拍
 compare(code[0], code[1], test, tb)
